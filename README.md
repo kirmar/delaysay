@@ -13,6 +13,8 @@ A Slack app that schedules messages
 
 - sam-cli: <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
 
+- Python 3.7
+
 
 ## Deploy AWS stack
 
@@ -67,3 +69,16 @@ Test
 ## Configure Slack App
 
 TBD
+
+
+## Cleanup
+
+Delete the AWS stack
+
+    aws cloudformation delete-stack \
+      --region "$region" \
+      --stack-name "$stack_name"
+
+Delete the Slack app
+
+    TBD
