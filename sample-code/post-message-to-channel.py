@@ -9,7 +9,7 @@ ssm_client = boto3.client('ssm')
 parameter = ssm_client.get_parameter(
     Name=slack_token_name,
     WithDecryption=True
-    )
+)
 slack_token = parameter['Parameter']['Value']
 
 slack_client = slack.WebClient(token=slack_token)
@@ -17,4 +17,4 @@ slack_client = slack.WebClient(token=slack_token)
 slack_client.chat_postMessage(
     channel=slack_channel_id,
     text="Hello, world! :tada:"
-    )
+)

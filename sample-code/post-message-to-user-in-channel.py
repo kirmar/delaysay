@@ -11,7 +11,7 @@ ssm_client = boto3.client('ssm')
 parameter = ssm_client.get_parameter(
     Name=slack_token_name,
     WithDecryption=True
-    )
+)
 slack_token = parameter['Parameter']['Value']
 
 slack_client = slack.WebClient(token=slack_token)
@@ -21,4 +21,4 @@ slack_client.chat_postEphemeral(
     text=f"Hello, {recipient_name}! :tada: This is a private message sent"
          " through the Slack SDK for Python",
     user=recipient_id
-    )
+)
