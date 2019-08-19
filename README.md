@@ -25,28 +25,28 @@ Clone the delaysay GitHub repository
 
 Set environment variables to match your preferences
 
-    stack_name=delaysay
-    deploy_bucket=$stack_name-deploy-$RANDOM$RANDOM
-    region=us-east-1
+    export DELAYSAY_STACK_NAME=delaysay
+    export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
+    export DELAYSAY_REGION=us-east-1
     
 Create the S3 bucket for SAM deployments
 
     aws s3 mb \
-      --region "$region" \
-      s3://$deploy_bucket
+      --region "$DELAYSAY_REGION" \
+      s3://$DELAYSAY_DEPLOY_BUCKET
 
 Build and package SAM app
 
     sam build
     sam package \
       --output-template packaged.yaml \
-      --s3-bucket "$deploy_bucket"
+      --s3-bucket "$DELAYSAY_DEPLOY_BUCKET"
     
 Deploy the SAM app
 
     sam deploy \
-      --region "$region" \
-      --stack-name "$stack_name" \
+      --region "$DELAYSAY_REGION" \
+      --stack-name "$DELAYSAY_STACK_NAME" \
       --template-file packaged.yaml \
       --capabilities CAPABILITY_IAM
 
@@ -54,17 +54,14 @@ Get the endpoint URL
 TBD: Update the parameter name when it changes
 
     endpoint_url=$(aws cloudformation describe-stacks \
-      --region "$region" \
-      --stack-name "$stack_name" \
+      --region "$DELAYSAY_REGION" \
+      --stack-name "$DELAYSAY_STACK_NAME" \
       --output text \
       --query 'Stacks[].Outputs[?OutputKey==`DelaySayApi`][OutputValue]')
     echo endpoint_url=$endpoint_url
 
 Save this endpoint URL for configuring the Slack App below.
 
-Test
-
-    curl "$endpoint_url"
 
 ## Configure Slack App
 
@@ -85,6 +82,13 @@ Configure the `/delay` Slack command:
     Escape channels, users, and links sent to your app: *[X]*
 - Click *[Save]*
 
+## Install Slack App in workspace
+
+TBD
+
+Note: Each individual user who wants to use DelaySay may have to
+authorize the app to post messages with their identity.
+
 
 ## Cleanup
 
@@ -94,8 +98,8 @@ app and wish to delete all resources that were created.
 Delete the AWS stack
 
     aws cloudformation delete-stack \
-      --region "$region" \
-      --stack-name "$stack_name"
+      --region "$DELAYSAY_REGION" \
+      --stack-name "$DELAYSAY_STACK_NAME"
 
 Delete the Slack app
 
