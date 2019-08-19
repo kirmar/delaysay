@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: delaysay/
-      Handler: app.lambda_handler
+      Handler: app.lambda_handler_with_catch_all
       Runtime: python3.7
       Events:
         DelaySay:

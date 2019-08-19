@@ -3,15 +3,16 @@ Code based on https://github.com/awslabs/serverless-application-model/blob/maste
 '''
 
 import json
+import traceback
 from urllib.parse import parse_qs
 
 # import requests
 
 
-def respond(err, res=None):
+def respond(res):
     return {
-        'statusCode': '400' if err else '200',
-        'body': err if err else json.dumps(res),
+        'statusCode': '200',
+        'body': json.dumps(res),
         'headers': {
             'Content-Type': 'application/json',
         },
@@ -58,4 +59,17 @@ def lambda_handler(event, context):
     channel = params['channel_name'][0]
     command_text = params['text'][0]
     
-    return respond(None, f"Hi, @{user}! This is DelaySay, reporting for duty.")
+    return respond(f"Hi, @{user}! This is DelaySay, reporting for duty.")
+
+
+def lambda_handler_with_catch_all(event, context):
+    try:
+        return lambda_handler(event, context)
+    except Exception as err:
+        print("~~~~~~~~~~")
+        print("\nevent['body']: ".join(event['body'].split("&")))
+        print("~~~~~~~~~~")
+        traceback.print_exc()
+        print("~~~~~~~~~~")
+        return respond(
+            f"Hi, there! DelaySay is confused right now. Try again later?")
