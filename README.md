@@ -68,10 +68,28 @@ Test
 
 ## Configure Slack App
 
-TBD
+TBD: Create app
+
+TBD: Other configuration
+
+Configure the `/delay` Slack command:
+
+- Click *"Add Features and Functionality"*
+- Click *"Slash Commands"*
+- Click *[Create New Command]*
+- Fill out the form:
+    Command: *`/delay`*
+    Request URL: _[Use $endpoint_url value above]_
+    Short Description: *`Send [message] at [time] on current channel`*
+    Usage Hint: *`[time] say [message]`*
+    Escape channels, users, and links sent to your app: *[X]*
+- Click *[Save]*
 
 
 ## Cleanup
+
+WARNING! Only follow these instructions if you are done testing the
+app and wish to delete all resources that were created.
 
 Delete the AWS stack
 
