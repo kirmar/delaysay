@@ -1,6 +1,20 @@
+'''
+Code based on https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
+'''
+
 import json
 
 # import requests
+
+
+def respond(err, res=None):
+    return {
+        'statusCode': '400' if err else '200',
+        'body': err if err else json.dumps(res),
+        'headers': {
+            'Content-Type': 'application/json',
+        },
+    }
 
 
 def lambda_handler(event, context):
@@ -32,11 +46,7 @@ def lambda_handler(event, context):
     #     print(e)
 
     #     raise e
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "Hi, world! This is DelaySay.",
-            # "location": ip.text.replace("\n", "")
-        }),
-    }
+    
+    print("event['body']: " + event['body'])
+    print("event: " + json.dumps(event))
+    return respond(None, "Hi, you! This is DelaySay, reporting for duty.")
