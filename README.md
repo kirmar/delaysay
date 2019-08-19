@@ -21,7 +21,7 @@ A Slack app that schedules messages
 Clone the delaysay GitHub repository
 
     git clone git@github.com:kirmar/delaysay.git
-    cd delaysay/sam-app
+    cd delaysay
 
 Set environment variables to match your preferences
 
