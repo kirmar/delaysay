@@ -57,7 +57,7 @@ TBD: Update the parameter name when it changes
       --region "$region" \
       --stack-name "$stack_name" \
       --output text \
-      --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`][OutputValue]')
+      --query 'Stacks[].Outputs[?OutputKey==`DelaySayApi`][OutputValue]')
     echo endpoint_url=$endpoint_url
 
 Save this endpoint URL for configuring the Slack App below.

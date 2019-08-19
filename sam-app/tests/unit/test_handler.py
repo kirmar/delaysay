@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from hello_world import app
+from delaysay import app
 
 
 @pytest.fixture()
@@ -69,5 +69,5 @@ def test_lambda_handler(apigw_event, mocker):
 
     assert ret["statusCode"] == 200
     assert "message" in ret["body"]
-    assert data["message"] == "hello world"
+    assert data["message"] == "Hi, world! This is DelaySay."
     # assert "location" in data.dict_keys()
