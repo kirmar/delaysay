@@ -3,6 +3,7 @@ Code based on https://github.com/awslabs/serverless-application-model/blob/maste
 '''
 
 import json
+from urllib.parse import parse_qs
 
 # import requests
 
@@ -47,6 +48,14 @@ def lambda_handler(event, context):
 
     #     raise e
     
-    print("event['body']: " + event['body'])
     print("event: " + json.dumps(event))
-    return respond(None, "Hi, you! This is DelaySay, reporting for duty.")
+    
+    params = parse_qs(event['body'])
+    print("params: " + json.dumps(params))
+    
+    user = params['user_name'][0]
+    command = params['command'][0]
+    channel = params['channel_name'][0]
+    command_text = params['text'][0]
+    
+    return respond(None, f"Hi, @{user}! This is DelaySay, reporting for duty.")
