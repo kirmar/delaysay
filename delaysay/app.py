@@ -12,7 +12,7 @@ from urllib.parse import parse_qs
 def respond(res):
     return {
         'statusCode': '200',
-        'body': json.dumps(res),
+        'body': res,
         'headers': {
             'Content-Type': 'application/json',
         },
