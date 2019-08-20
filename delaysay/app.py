@@ -55,11 +55,12 @@ def lambda_handler(event, context):
     print("params: " + json.dumps(params))
     
     user = params['user_name'][0]
+    user_id = params['user_id'][0]
     command = params['command'][0]
     channel = params['channel_name'][0]
     command_text = params['text'][0]
     
-    return respond(f"Hi, @{user}! This is DelaySay, reporting for duty.")
+    return respond(f"Hi, <@{user_id}>! This is DelaySay, reporting for duty.")
 
 
 def lambda_handler_with_catch_all(event, context):
