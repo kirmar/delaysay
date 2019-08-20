@@ -68,9 +68,19 @@ def lambda_handler_with_catch_all(event, context):
         return lambda_handler(event, context)
     except Exception as err:
         print("~~~~~~~~~~")
-        print("\nevent['body']: ".join(event['body'].split("&")))
+        try:
+            string = ""
+            for param in event['body'].split("&"):
+                string += "\nevent['body']: " + param
+            print(string)
+        except:
+            try:
+                print("event: " + json.dumps(event))
+            except:
+                print("event: " + str(event))
         print("~~~~~~~~~~")
         traceback.print_exc()
         print("~~~~~~~~~~")
         return respond(
-            f"Hi, there! DelaySay is confused right now. Try again later?")
+            "Hi, there! Sorry, DelaySay is confused right now."
+            "\nTry again later or rephrase your command?")
