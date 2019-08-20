@@ -4,7 +4,9 @@ Code based on https://github.com/awslabs/serverless-application-model/blob/maste
 
 import json
 import traceback
+from SlashCommandParser import SlashCommandParser
 from urllib.parse import parse_qs
+from datetime import datetime
 
 # import requests
 
@@ -60,7 +62,15 @@ def lambda_handler(event, context):
     channel = params['channel_name'][0]
     command_text = params['text'][0]
     
-    return respond(f"Hi, <@{user_id}>! This is DelaySay, reporting for duty.")
+    parser = SlashCommandParser(command_text, initial_time=datetime.now())
+    date = parser.get_date_string()
+    time = parser.get_time_string()
+    message = parser.get_message()
+    
+    return respond(
+        f"Hi, <@{user_id}>! This is DelaySay, reporting for duty."
+        f"\nYou said: `{command} {command_text}`"
+        f'\nI will post "{message}" on your behalf at {time} on {date}.')
 
 
 def lambda_handler_with_catch_all(event, context):
