@@ -1,6 +1,7 @@
 import os
 import slack
 import boto3
+import time
 
 slack_token_name = os.environ["SLACK_API_TOKEN_NAME"]
 slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
@@ -14,17 +15,8 @@ slack_token = parameter['Parameter']['Value']
 
 slack_client = slack.WebClient(token=slack_token)
 
-slack_client.chat_postMessage(
+slack_client.chat_scheduleMessage(
     channel=slack_channel_id,
-    text="Hello, world! :tada:"
+    post_at=time.time() + 60,
+    text="Hello, world! :tada: This is a scheduled message."
 )
-
-# # Why don't link_names=True and username="DelaySay" and
-# # icon_emoji=":robot_face:" work??
-# slack_client.chat_postMessage(
-#     channel=slack_channel_id,
-#     link_names=1,
-#     text=f"Hello, @{slack_channel_id}! :tada:",
-#     username='DelaySay',
-#     icon_emoji=':robot_face:'
-# )
