@@ -8,8 +8,6 @@ import boto3
 from delaysay_parser_lambda_function_info import parser_lambda_name
 from urllib.parse import parse_qs
 
-import requests
-
 
 def respond(res):
     return {
@@ -27,11 +25,7 @@ def lambda_handler(event, context):
     params = parse_qs(event['body'])
     print("params: " + json.dumps(params))
     
-    user = params['user_name'][0]
     user_id = params['user_id'][0]
-    command = params['command'][0]
-    channel = params['channel_name'][0]
-    command_text = params['text'][0]
     channel_id = params['channel_id'][0]
     
     params['request_timestamp'] = (
