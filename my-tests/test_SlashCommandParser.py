@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 
 import sys, os
-sys.path.insert(1, os.path.dirname(os.path.realpath(__file__)) + '/../parser')
+sys.path.insert(1, os.path.dirname(os.path.realpath(__file__)) + '/../delaysay')
 
 import unittest
 from datetime import datetime, timedelta
