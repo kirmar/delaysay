@@ -42,7 +42,7 @@ class SlashCommandParser:
                     user_input, default=self.initial_time)
             except ValueError:
                 raise TimeParseError(
-                    f"Cannot parse time '{original_user_input}'")
+                    f'Cannot parse time "{original_user_input}"')
         elif scheduled_time <= self.initial_time:
             # Help dateparser.parser.parse with relative dates
             scheduled_time = dateparser_parse(
@@ -53,7 +53,7 @@ class SlashCommandParser:
                 }
             )
         if not scheduled_time:
-            raise TimeParseError(f"Cannot parse time '{original_user_input}'")
+            raise TimeParseError(f'Cannot parse time "{original_user_input}"')
         date_string = scheduled_time.strftime("%Y-%m-%d")
         if scheduled_time - self.initial_time > SECONDS_THRESHOLD:
             scheduled_time = scheduled_time.replace(second=0)
