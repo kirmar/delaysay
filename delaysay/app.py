@@ -4,11 +4,11 @@ Code based on https://github.com/awslabs/serverless-application-model/blob/maste
 
 import json
 import traceback
-from SlashCommandParser import SlashCommandParser
+import boto3
+from delaysay_parser_lambda_function_info import parser_lambda_name
 from urllib.parse import parse_qs
-from datetime import datetime
 
-# import requests
+import requests
 
 
 def respond(res):
@@ -61,16 +61,22 @@ def lambda_handler(event, context):
     command = params['command'][0]
     channel = params['channel_name'][0]
     command_text = params['text'][0]
+    channel_id = params['channel_id'][0]
     
-    parser = SlashCommandParser(command_text, initial_time=datetime.now())
-    date = parser.get_date_string()
-    time = parser.get_time_string()
-    message = parser.get_message()
+    params['request_timestamp'] = (
+        int(event['multiValueHeaders']['X-Slack-Request-Timestamp'][0]))
+    client = boto3.client('lambda')
+    client.invoke(
+        ClientContext="DelaySay handler",
+        FunctionName=parser_lambda_name,
+        InvocationType="Event",
+        Payload=json.dumps(params)
+    )
     
     return respond(
         f"Hi, <@{user_id}>! This is DelaySay, reporting for duty."
-        f"\nYou said: `{command} {command_text}`"
-        f'\nI will post "{message}" on your behalf at {time} on {date}.')
+        f"\nGive me a moment while I parse your request."
+    )
 
 
 def lambda_handler_with_catch_all(event, context):

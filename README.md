@@ -63,6 +63,22 @@ TBD: Update the parameter name when it changes
 Save this endpoint URL for configuring the Slack App below.
 
 
+## Deploy parser AWS stack
+
+This prevents Slack from timing out when parsing takes more than three seconds.
+
+Follow the same steps with the following:
+
+    export DELAYSAY_STACK_NAME=delaysay-parser
+    export DELAYSAY_DEPLOY_BUCKET=delaysay-parser-deploy-$RANDOM$RANDOM
+
+In your Lambda console, change the function's timeout to 5 minutes. (Just in case! That way Lambda doesn't silently time out and leave the user wondering what happened.)
+
+In your IAM console, attach a new policy to your original function's role that allows the action "lambda:InvokeFunction" on the new function's ARN.
+
+Put the Lambda function's name or entire ARN in a variable called "parser_lambda_name" in delaysay/delaysay_parser_lambda_function_info.py
+
+
 ## Configure Slack App
 
 TBD: Create app
@@ -95,7 +111,7 @@ authorize the app to post messages with their identity.
 WARNING! Only follow these instructions if you are done testing the
 app and wish to delete all resources that were created.
 
-Delete the AWS stack
+Delete both AWS stacks by running the following command with the main stack name then the parser stack name:
 
     aws cloudformation delete-stack \
       --region "$DELAYSAY_REGION" \
