@@ -4,10 +4,9 @@ Code based on https://github.com/awslabs/serverless-application-model/blob/maste
 
 import json
 import re
+import requests
 from SlashCommandParser import SlashCommandParser, TimeParseError
 from datetime import datetime
-
-import requests
 
 
 def post_and_print_info_and_confirm_success(response_url, text):
@@ -36,9 +35,12 @@ def lambda_handler(params, context):
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
-    request_timestamp = params['request_timestamp']
-    request_time = "<!date^" + str(request_timestamp) + "^{time_secs}|"
-    request_time += "HELP"
+    request_unix_timestamp = params['request_timestamp']
+    request_time = "<!date^" + str(request_unix_timestamp) + "^{time_secs}|"
+    request_time += (
+        datetime.utcfromtimestamp(request_unix_timestamp)
+        .strftime("%H:%M:%S")
+        + " UTC")
     request_time += ">"
     
     try:
