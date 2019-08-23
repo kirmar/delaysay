@@ -55,11 +55,13 @@ class SlashCommandParser:
         if not scheduled_time:
             raise TimeParseError(f'Cannot parse time "{original_user_input}"')
         date_string = scheduled_time.strftime("%Y-%m-%d")
+        time_string = scheduled_time.strftime("%I:%M")
         if scheduled_time - self.initial_time > SECONDS_THRESHOLD:
             scheduled_time = scheduled_time.replace(second=0)
-            time_string = scheduled_time.strftime("%I:%M %p")
         else:
-            time_string = scheduled_time.strftime("%I:%M:%S %p")
+            time_string += scheduled_time.strftime(":%S")
+        time_string += scheduled_time.strftime(" %p")
+        # Remove leading zeroes from the hour.
         time_string = re.sub(r"^0(?=[0-9]:)", "", time_string)
         return (scheduled_time, date_string, time_string)
     
