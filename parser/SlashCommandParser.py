@@ -37,8 +37,12 @@ class SlashCommandParser:
             }
         )
         if not scheduled_time:
-            scheduled_time = dateutil_parse(
-                user_input, default=self.initial_time)
+            try:
+                scheduled_time = dateutil_parse(
+                    user_input, default=self.initial_time)
+            except ValueError:
+                raise TimeParseError(
+                    f"Cannot parse time '{original_user_input}'")
         elif scheduled_time <= self.initial_time:
             # Help dateparser.parser.parse with relative dates
             scheduled_time = dateparser_parse(

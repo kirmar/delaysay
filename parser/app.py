@@ -43,7 +43,7 @@ def lambda_handler(params, context):
     
     try:
         parser = SlashCommandParser(command_text, initial_time=datetime.now())
-    except (TimeParseError, ValueError):
+    except TimeParseError:
         post_and_print_info_and_confirm_success(
             response_url,
             f"\nSorry, I can't parse the request you made at {request_time}:"
