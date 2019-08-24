@@ -1,5 +1,6 @@
 '''
-Code based on https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
+Code based on:
+https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
 '''
 
 import json
@@ -39,11 +40,12 @@ def post_and_print_info_and_confirm_success(response_url, text):
             'text': text
         },
         headers={
-            'Content-Type': 'application/json'
+            'Content-Type': "application/json"
         }
     )
     if r.status_code != 200:
         print(r.status_code, r.reason)
+        print(r.text)
         raise Exception("requests.post failed")
     return r
 
@@ -96,10 +98,10 @@ def parse_and_schedule(params):
 
 def build_response(res):
     return {
-        'statusCode': '200',
+        'statusCode': "200",
         'body': res,
         'headers': {
-            'Content-Type': 'application/json',
+            'Content-Type': "application/json",
         },
     }
 
