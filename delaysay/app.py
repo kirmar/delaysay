@@ -7,7 +7,6 @@ import traceback
 import boto3
 import requests
 import re
-from delaysay_parser_lambda_function_info import parser_lambda_name
 from SlashCommandParser import SlashCommandParser, TimeParseError
 from datetime import datetime
 from urllib.parse import parse_qs
@@ -74,7 +73,7 @@ def build_response(res):
     }
 
 
-def respond_before_timeout(event):
+def respond_before_timeout(event, context):
     # Don't print the event or params, because they have secrets.
     # Or print only the keys.
     params = parse_qs(event['body'])
@@ -87,7 +86,7 @@ def respond_before_timeout(event):
     client = boto3.client('lambda')
     client.invoke(
         ClientContext="DelaySay handler",
-        FunctionName=parser_lambda_name,
+        FunctionName=context.function_name,
         InvocationType="Event",
         Payload=json.dumps(params)
     )
@@ -102,7 +101,7 @@ def lambda_handler(event, context):
     if "parser/scheduler" in event:
         return parse_and_schedule(event)
     else:
-        return respond_before_timeout(event)
+        return respond_before_timeout(event, context)
 
 
 def lambda_handler_with_catch_all(event, context):
