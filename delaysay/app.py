@@ -74,7 +74,8 @@ def parse_and_schedule(params):
     
     try:
         parser = SlashCommandParser(
-            command_text, initial_time=datetime.now(user_tz))
+            command_text,
+            datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
     except TimeParseError:
         post_and_print_info_and_confirm_success(
             response_url,
