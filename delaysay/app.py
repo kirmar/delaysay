@@ -25,14 +25,11 @@ def post_and_print_info_and_confirm_success(response_url, text):
     )
     if r.status_code != 200:
         print(r.status_code, r.reason)
-        print(r.text)
         raise Exception("requests.post failed")
     return r
 
 
 def parse_and_schedule(params):
-    print("params: " + str(params))
-    
     user = params['user_name'][0]
     user_id = params['user_id'][0]
     command = params['command'][0]
@@ -78,11 +75,9 @@ def build_response(res):
 
 
 def respond_before_timeout(event):
-    print("event: " + json.dumps(event))
-    
+    # Don't print the event or params, because they have secrets.
+    # Or print only the keys.
     params = parse_qs(event['body'])
-    print("params: " + json.dumps(params))
-    
     user_id = params['user_id'][0]
     channel_id = params['channel_id'][0]
     
@@ -114,20 +109,9 @@ def lambda_handler_with_catch_all(event, context):
     try:
         return lambda_handler(event, context)
     except Exception as err:
-        print("~~~~~~~~~~")
-        try:
-            string = ""
-            for param in event['body'].split("&"):
-                string += "\nevent['body']: " + param
-            print(string)
-        except:
-            try:
-                print("event: " + json.dumps(event))
-            except:
-                print("event: " + str(event))
-        print("~~~~~~~~~~")
+        # Maybe remove this, since it could print sensitive information,
+        # like the message parsed by SlashCommandParser.
         traceback.print_exc()
-        print("~~~~~~~~~~")
         return build_response(
             "Hi, there! Sorry, DelaySay is confused right now."
             "\nTry again later or rephrase your command?")
