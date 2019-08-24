@@ -7,9 +7,29 @@ import traceback
 import boto3
 import requests
 import re
-from SlashCommandParser import SlashCommandParser, TimeParseError
-from datetime import datetime
 from urllib.parse import parse_qs
+from slack_oauth_token import TOKEN_NAME
+from SlashCommandParser import SlashCommandParser, TimeParseError
+from datetime import datetime, timezone, timedelta
+
+
+def get_user_timezone(user_id, token):
+    r = requests.post(
+        url="https://slack.com/api/users.info",
+        data={
+            'user': user_id
+        },
+        headers={
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Authorization': "Bearer " + token
+        }
+    )
+    if r.status_code != 200:
+        print(r.status_code, r.reason)
+        raise Exception("requests.post failed")
+    tz_offset = json.loads(r.content)['user']['tz_offset']
+    user_tz = timezone(timedelta(seconds=tz_offset))
+    return user_tz
 
 
 def post_and_print_info_and_confirm_success(response_url, text):
@@ -35,6 +55,15 @@ def parse_and_schedule(params):
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
+    # TODO: Make this work without my OAuth.
+    ssm_client = boto3.client("ssm")
+    parameter = ssm_client.get_parameter(
+        Name=TOKEN_NAME,
+        WithDecryption=True
+    )
+    token = parameter['Parameter']['Value']
+    user_tz = get_user_timezone(user_id, token)
+    
     request_unix_timestamp = params['request_timestamp']
     request_time = "<!date^" + str(request_unix_timestamp) + "^{time_secs}|"
     request_time += (
@@ -44,7 +73,8 @@ def parse_and_schedule(params):
     request_time += ">"
     
     try:
-        parser = SlashCommandParser(command_text, initial_time=datetime.now())
+        parser = SlashCommandParser(
+            command_text, initial_time=datetime.now(user_tz))
     except TimeParseError:
         post_and_print_info_and_confirm_success(
             response_url,
@@ -52,8 +82,8 @@ def parse_and_schedule(params):
             f"\n`{command} {command_text}`")
         return
     
-    date = parser.get_date_string()
-    time = parser.get_time_string()
+    date = parser.get_date_string_for_slack()
+    time = parser.get_time_string_for_slack()
     message = parser.get_message()
     
     post_and_print_info_and_confirm_success(

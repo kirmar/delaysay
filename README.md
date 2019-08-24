@@ -64,7 +64,7 @@ Save this endpoint URL for configuring the Slack App below.
 
 In your Lambda console, change the function's timeout to 5 minutes. (Just in case! That way Lambda doesn't silently time out and leave the user wondering what happened.)
 
-In your IAM console, attach a new policy to your function's role that allows the action "lambda:InvokeFunction" on its own ARN.
+In your IAM console, create a policy that allows the action "lambda:InvokeFunction" on your Lambda function's ARN. Attach it to the Lambda's IAM role.
 
 
 ## Configure Slack App
@@ -85,6 +85,12 @@ Configure the `/delay` Slack command:
     Usage Hint: *`[time] say [message]`*
     Escape channels, users, and links sent to your app: *[X]*
 - Click *[Save]*
+
+Save your OAuth token in the SSM Parameter Store.
+
+Store the parameter name in a variable called "token_name" in delaysay/slack_oauth_token.py.
+
+In your IAM console, create a policy that allows the action "ssm:GetParameter" on your OAuth token's parameter name. Attach it to your Lambda function's IAM role.
 
 ## Install Slack App in workspace
 
