@@ -2,8 +2,7 @@
 
 import re
 from datetime import datetime, timedelta
-from dateparser import parse as dateparser_parse
-from dateutil.parser import parse as dateutil_parse
+from dateparser import parse
 
 SECONDS_THRESHOLD = timedelta(minutes=10)
 
@@ -29,23 +28,16 @@ class SlashCommandParser:
         user_input = user_input.replace("hr", "hour").replace("h ", "hour ")
         user_input = user_input.replace("a ", "am ")
         user_input = user_input.replace("next", "")
-        scheduled_time = dateparser_parse(
+        scheduled_time = parse(
             user_input,
             settings={
                 'PREFER_DATES_FROM': 'future',
                 'RELATIVE_BASE': self.initial_time
             }
         )
-        if not scheduled_time:
-            try:
-                scheduled_time = dateutil_parse(
-                    user_input, default=self.initial_time)
-            except ValueError:
-                raise TimeParseError(
-                    f'Cannot parse time "{original_user_input}"')
-        elif scheduled_time <= self.initial_time:
+        if scheduled_time and scheduled_time <= self.initial_time:
             # Help dateparser.parser.parse with relative dates
-            scheduled_time = dateparser_parse(
+            scheduled_time = parse(
                 "in " + user_input,
                 settings={
                     'PREFER_DATES_FROM': 'future',
