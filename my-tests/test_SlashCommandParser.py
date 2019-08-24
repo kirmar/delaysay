@@ -2,7 +2,7 @@
 
 import sys, os
 sys.path.insert(
-    1, os.path.dirname(os.path.realpath(__file__)) + '/../delaysay')
+    1, os.path.dirname(os.path.realpath(__file__)) + '/../code')
 
 import unittest
 from datetime import datetime, timezone, timedelta

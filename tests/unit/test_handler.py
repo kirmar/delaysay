@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from delaysay import app
+from code import app
 
 
 @pytest.fixture()
