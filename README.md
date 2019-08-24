@@ -66,6 +66,8 @@ In your Lambda console, change the function's timeout to 5 minutes. (Just in cas
 
 In your IAM console, attach a new policy to your function's role that allows the action "lambda:InvokeFunction" on its own ARN.
 
+Put the Lambda function's name or entire ARN in a variable called "parser_lambda_name" in delaysay/delaysay_parser_lambda_function_info.py
+
 
 ## Configure Slack App
 
