@@ -99,8 +99,10 @@ def respond_before_timeout(event, context):
 
 def lambda_handler(event, context):
     if "parser/scheduler" in event:
+        print("~~~   PARSER / SCHEDULER   ~~~")
         return parse_and_schedule(event)
     else:
+        print("~~~   FIRST RESPONDER BEFORE TIMEOUT   ~~~")
         return respond_before_timeout(event, context)
 
 
