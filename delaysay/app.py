@@ -7,7 +7,6 @@ import json
 import traceback
 import boto3
 import requests
-import re
 from urllib.parse import parse_qs
 from slack_oauth_token import TOKEN_NAME
 from SlashCommandParser import SlashCommandParser, TimeParseError
