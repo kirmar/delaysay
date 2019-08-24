@@ -39,7 +39,7 @@ def post_and_print_info_and_confirm_success(response_url, text):
             'text': text
         },
         headers={
-            'Content-Type': 'application/json"'
+            'Content-Type': 'application/json'
         }
     )
     if r.status_code != 200:
