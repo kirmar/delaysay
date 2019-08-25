@@ -75,23 +75,23 @@ TBD: Other configuration
 
 Configure the `/delay` Slack command:
 
-- Click *"Add Features and Functionality"*
-- Click *"Slash Commands"*
-- Click *[Create New Command]*
+- Click **"Add Features and Functionality"**
+- Click **"Slash Commands"**
+- Click **[Create New Command]**
 - Fill out the form:
-    Command: *`/delay`*
-    Request URL: _[Use $endpoint_url value above]_
-    Short Description: *`Send [message] at [time] on current channel`*
-    Usage Hint: *`[time] say [message]`*
-    Escape channels, users, and links sent to your app: *[X]*
-- Click *[Save]*
+    Command: **`/delay`**
+    Request URL: *[Use $endpoint_url value above]*
+    Short Description: **`Send [message] at [time] on current channel`**
+    Usage Hint: **`[time] say [message]`**
+    Escape channels, users, and links sent to your app: **[X]**
+- Click **[Save]**
 
 Configure the redirect URL:
 
-- Click *"OAuth & Permissions"*
-- Under *"Redirect URLs"*, click *[Add New Redirect URL]*
+- Click **"OAuth & Permissions"**
+- Under **"Redirect URLs"**, click **[Add New Redirect URL]**
 - Paste the URL of your app's website (starting with "https://" and ending with "/")
-- Click *[Save URLs]*
+- Click **[Save URLs]**
 
 ## Install Slack App in workspace
 
