@@ -86,11 +86,12 @@ Configure the `/delay` Slack command:
     Escape channels, users, and links sent to your app: *[X]*
 - Click *[Save]*
 
-Save your OAuth token in the SSM Parameter Store.
+Configure the redirect URL:
 
-Store the parameter name in a variable called "token_name" in code/slack_oauth_token.py.
-
-In your IAM console, create a policy that allows the action "ssm:GetParameter" on your OAuth token's parameter name. Attach it to your Lambda function's IAM role.
+- Click *"OAuth & Permissions"*
+- Under *"Redirect URLs"*, click *[Add New Redirect URL]*
+- Paste the URL of your app's website (starting with "https://" and ending with "/")
+- Click *[Save URLs]*
 
 ## Install Slack App in workspace
 
