@@ -11,7 +11,7 @@ Globals:
     EndpointConfiguration: REGIONAL
     Name: "TestAPI"
   Function:
-    Timeout: 3
+    Timeout: 300
 
 Resources:
   UserTable:
@@ -27,6 +27,12 @@ Resources:
       CodeUri: code-slack-slash-command/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.7
+      Policies:
+        DynamoDBReadPolicy:
+          TableName: !Ref UserTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UserTable
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -43,12 +49,6 @@ Resources:
           Properties:
             Path: /users
             Method: GET
-      Policies:
-        DynamoDBReadPolicy:
-          TableName: !Ref UserTable
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref UserTable
   DelaySayUserAuthenticationFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
