@@ -2,7 +2,8 @@
 
 import sys, os
 sys.path.insert(
-    1, os.path.dirname(os.path.realpath(__file__)) + '/../code')
+    1, os.path.dirname(
+        os.path.realpath(__file__)) + '/../code-slack-slash-command')
 
 import unittest
 from datetime import datetime, timezone, timedelta
@@ -37,7 +38,6 @@ class SlashCommandParserTestCase(unittest.TestCase):
 
         p = SlashCommandParser("in 1h say Hm...", initial_time)
         self.assertEqual(p.get_time(), initial_time + time_elapsed)
-
 
         # 2 hours
         time_elapsed = timedelta(hours=2, seconds=-5)
