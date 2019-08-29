@@ -7,10 +7,20 @@ Description: >
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
+  Api:
+    EndpointConfiguration: REGIONAL
+    Name: "TestAPI"
   Function:
     Timeout: 3
 
 Resources:
+  UserTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: Number
+      TableName: User
   DelaySayFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -23,6 +33,45 @@ Resources:
           Properties:
             Path: /delaysay
             Method: ANY
+        GetByPathApi:
+          Type: Api
+          Properties:
+            Path: /users/{id}
+            Method: GET
+        GetByQueryApi:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: GET
+      Policies:
+        DynamoDBReadPolicy:
+          TableName: !Ref UserTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UserTable
+  DelaySayUserAuthenticationFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: code-slack-user-authentication/
+      Handler: app.lambda_handler_with_catch_all
+      Runtime: python3.7
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref UserTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UserTable
+      Events:
+        StoreApi:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: PUT
+        DelaySayUserAuthentication:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /delaysay-user-authentication
+            Method: ANY
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -34,6 +83,12 @@ Outputs:
   DelaySayFunction:
     Description: "DelaySay Lambda Function ARN"
     Value: !GetAtt DelaySayFunction.Arn
+  DelaySayUserAuthenticationFunction:
+    Description: "DelaySay User Authentication Lambda Function ARN"
+    Value: !GetAtt DelaySayUserAuthenticationFunction.Arn
   DelaySayFunctionIamRole:
     Description: "Implicit IAM Role created for DelaySay function"
     Value: !GetAtt DelaySayFunctionRole.Arn
+  DelaySayUserAuthenticationFunctionIamRole:
+    Description: "Implicit IAM Role created for DelaySay user auth function"
+    Value: !GetAtt DelaySayUserAuthenticationFunctionRole.Arn
