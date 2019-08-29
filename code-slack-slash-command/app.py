@@ -9,7 +9,7 @@ import boto3
 import requests
 from urllib.parse import parse_qs
 from slack_oauth_token import TOKEN_NAME
-from SlashCommandParser import SlashCommandParser, TimeParseError
+from SlashCommandParser import SlashCommandParser, CommandParseError
 from datetime import datetime, timezone, timedelta
 
 
@@ -77,7 +77,7 @@ def parse_and_schedule(params):
         parser = SlashCommandParser(
             command_text,
             datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
-    except TimeParseError:
+    except CommandParseError:
         post_and_print_info_and_confirm_success(
             response_url,
             f"\nSorry, I can't parse the request you made at {request_time}:"

@@ -7,7 +7,7 @@ sys.path.insert(
 
 import unittest
 from datetime import datetime, timezone, timedelta
-from SlashCommandParser import SlashCommandParser, TimeParseError
+from SlashCommandParser import SlashCommandParser, CommandParseError
 
 class SlashCommandParserTestCase(unittest.TestCase):
 
@@ -155,9 +155,9 @@ class SlashCommandParserTestCase(unittest.TestCase):
         p = SlashCommandParser("noon say Take a break", initial_time)
         self.assertEqual(p.get_time(), final_datetime)
 
-        with self.assertRaises(TimeParseError):
+        with self.assertRaises(CommandParseError):
             # TODO: Fix this, then find another example that should
-            # raise the TimeParseError.
+            # raise the CommandParseError.
             final_datetime = datetime(2019, 8, 19, 12, 0, 0, tzinfo=self.gmt)
             p = SlashCommandParser("Tomorrow 12noon say Blah", initial_time)
 
@@ -348,6 +348,9 @@ class SlashCommandParserTestCase(unittest.TestCase):
         p = SlashCommandParser(
             "1 hour say ... ??? ...", initial_time)
         self.assertEqual(p.get_message(), "... ??? ...")
+        
+        with self.assertRaises(CommandParseError):
+            SlashCommandParser("Tomorrow blah blah blah", initial_time)
 
 if __name__ == '__main__':
     unittest.main()

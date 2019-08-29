@@ -6,7 +6,7 @@ from dateparser import parse
 
 SECONDS_THRESHOLD = timedelta(minutes=10)
 
-class TimeParseError(Exception):
+class CommandParseError(Exception):
     pass
 
 class SlashCommandParser:
@@ -33,7 +33,11 @@ class SlashCommandParser:
         return re.sub(r"^0(?=[0-9]:)", "", time_string)
     
     def _parse_time(self):
-        original_user_input = self.command_text.split("say", 1)[0]
+        try:
+            original_user_input = self.command_text.split("say", 1)[0]
+        except IndexError:
+            raise CommandParseError(
+                f'Cannot parse time from "{self.command_text}"')
         user_input = original_user_input.rstrip(":").rstrip(",")
         user_input = user_input.replace("hr", "hour").replace("h ", "hour ")
         user_input = user_input.replace("a ", "am ")
@@ -46,7 +50,7 @@ class SlashCommandParser:
             }
         )
         if not scheduled_time:
-            raise TimeParseError(
+            raise CommandParseError(
                 f'Cannot parse time "{original_user_input}"')
         force_timezone = bool(scheduled_time.tzinfo)
         if not scheduled_time.tzinfo:
@@ -61,7 +65,7 @@ class SlashCommandParser:
                 }
             )
             if not scheduled_time:
-                raise TimeParseError(
+                raise CommandParseError(
                     f'Cannot parse time "{original_user_input}"')
             force_timezone = bool(scheduled_time.tzinfo)
             if not scheduled_time.tzinfo:
@@ -127,7 +131,11 @@ class SlashCommandParser:
         return self.time_string_for_slack
     
     def _parse_message(self):
-        message = self.command_text.split("say", 1)[1]
+        try:
+            message = self.command_text.split("say", 1)[1]
+        except IndexError:
+            raise CommandParseError(
+                f'Cannot parse message from "{self.command_text}"')
         message = message.lstrip(":,").strip().strip("'").strip('"')
         return message
     
