@@ -1,5 +1,5 @@
 '''
-Code based on:
+Code included from:
 https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
 '''
 
@@ -101,7 +101,7 @@ def build_response(res):
         'body': res,
         'headers': {
             'Content-Type': "application/json",
-        },
+        }
     }
 
 
