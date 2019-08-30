@@ -163,12 +163,12 @@ class SlashCommandParserTestCase(unittest.TestCase):
 
         final_datetime = datetime(2019, 8, 20, 12, 0, 0, tzinfo=self.gmt)
         p = SlashCommandParser("Tomorrow 12 noon say Blah", initial_time)
-        print(p.get_time(), final_datetime)
+        # print(p.get_time(), final_datetime)
         self.assertEqual(p.get_time(), final_datetime)
         
         final_datetime = datetime(2019, 8, 19, 12, 0, 0, tzinfo=self.pst)
         p = SlashCommandParser("12 noon PST say Blah", initial_time)
-        print(p.get_time(), final_datetime)
+        # print(p.get_time(), final_datetime)
         self.assertEqual(p.get_time(), final_datetime)
 
         # TODO: Why does the time not work if the user says both
