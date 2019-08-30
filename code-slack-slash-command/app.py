@@ -8,7 +8,7 @@ import traceback
 import boto3
 import requests
 import slack
-# import os
+import os
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser, CommandParseError
 from datetime import datetime, timezone, timedelta
@@ -16,10 +16,7 @@ from datetime import datetime, timezone, timedelta
 
 def get_user_auth_token(user_id):
     dynamodb = boto3.resource("dynamodb")
-    # TODO: Figure out how to do this:
-    # table = dynamodb.Table(os.environ("AUTH_TABLE_NAME"))
-    # Or remove the environment variable from template.yaml
-    table = dynamodb.Table("User")
+    table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
     response = table.get_item(
         Key={
             'id': user_id
