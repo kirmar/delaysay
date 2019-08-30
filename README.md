@@ -90,8 +90,10 @@ Configure the redirect URL:
 
 - Click **"OAuth & Permissions"**
 - Under **"Redirect URLs"**, click **[Add New Redirect URL]**
-- Paste the URL of your app's website (starting with "https://" and ending with "/")
+- Paste the URL of your user authentication Lambda's API Gateway endpoint??
 - Click **[Save URLs]**
+
+Create a file code-slack-user-authentication/slack_app_info.py with two variables, "CLIENT_ID" AND "CLIENT_SECRET". Paste the values from **"App Credentials"** under **"Basic Information"** in your Slack app.
 
 ## Install Slack App in workspace
 

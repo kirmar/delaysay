@@ -7,10 +7,27 @@ import json
 import traceback
 import boto3
 import requests
+# import os
 from urllib.parse import parse_qs
-from slack_oauth_token import TOKEN_NAME
 from SlashCommandParser import SlashCommandParser, CommandParseError
 from datetime import datetime, timezone, timedelta
+
+
+def get_user_auth_token(user_id):
+    dynamodb = boto3.resource("dynamodb")
+    # TODO: Figure out how to do this:
+    # table = dynamodb.Table(os.environ("AUTH_TABLE_NAME"))
+    # Or remove the environment variable from template.yaml
+    table = dynamodb.Table("User")
+    response = table.get_item(
+        Key={
+            'id': user_id
+        }
+    )
+    try:
+        return response['Item']['token']
+    except KeyError:
+        raise Exception("User did not authenticate")
 
 
 def get_user_timezone(user_id, token):
@@ -56,13 +73,7 @@ def parse_and_schedule(params):
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
-    # TODO: Make this work without my OAuth.
-    ssm_client = boto3.client("ssm")
-    parameter = ssm_client.get_parameter(
-        Name=TOKEN_NAME,
-        WithDecryption=True
-    )
-    token = parameter['Parameter']['Value']
+    token = get_user_auth_token(user_id)
     user_tz = get_user_timezone(user_id, token)
     
     request_unix_timestamp = params['request_timestamp']

@@ -19,7 +19,7 @@ Resources:
     Properties:
       PrimaryKey:
         Name: id
-        Type: Number
+        Type: String
       TableName: User
   DelaySayFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -32,7 +32,7 @@ Resources:
           TableName: !Ref UserTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref UserTable
+          AUTH_TABLE_NAME: !Ref UserTable
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -60,7 +60,7 @@ Resources:
           TableName: !Ref UserTable
       Environment:
         Variables:
-          TABLE_NAME: !Ref UserTable
+          AUTH_TABLE_NAME: !Ref UserTable
       Events:
         StoreApi:
           Type: Api
@@ -80,6 +80,9 @@ Outputs:
   DelaySayApi:
     Description: "API Gateway endpoint URL for Prod stage for DelaySay function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/delaysay/"
+  UserTable:
+    Description: "DelaySay DynamoDB Table ARN"
+    Value: !GetAtt UserTable.Arn
   DelaySayFunction:
     Description: "DelaySay Lambda Function ARN"
     Value: !GetAtt DelaySayFunction.Arn
