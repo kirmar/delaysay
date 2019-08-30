@@ -9,7 +9,7 @@ Description: >
 Globals:
   Api:
     EndpointConfiguration: REGIONAL
-    Name: "TestAPI"
+    Name: "DelaySayAPI"
   Function:
     Timeout: 300
 
@@ -39,16 +39,6 @@ Resources:
           Properties:
             Path: /delaysay
             Method: ANY
-        GetByPathApi:
-          Type: Api
-          Properties:
-            Path: /users/{id}
-            Method: GET
-        GetByQueryApi:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: GET
   DelaySayUserAuthenticationFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -62,11 +52,6 @@ Resources:
         Variables:
           AUTH_TABLE_NAME: !Ref UserTable
       Events:
-        StoreApi:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: PUT
         DelaySayUserAuthentication:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
