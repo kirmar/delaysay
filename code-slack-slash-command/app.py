@@ -7,6 +7,7 @@ import json
 import traceback
 import boto3
 import requests
+import slack
 # import os
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser, CommandParseError
@@ -69,6 +70,7 @@ def post_and_print_info_and_confirm_success(response_url, text):
 def parse_and_schedule(params):
     user = params['user_name'][0]
     user_id = params['user_id'][0]
+    channel_id = params['channel_id'][0]
     command = params['command'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
@@ -97,7 +99,15 @@ def parse_and_schedule(params):
     
     date = parser.get_date_string_for_slack()
     time = parser.get_time_string_for_slack()
+    unix_timestamp = datetime.timestamp(parser.get_time())
     message = parser.get_message()
+    
+    slack_client = slack.WebClient(token=token)
+    slack_client.chat_scheduleMessage(
+        channel=channel_id,
+        post_at=unix_timestamp,
+        text=message
+    )
     
     post_and_print_info_and_confirm_success(
         response_url,
