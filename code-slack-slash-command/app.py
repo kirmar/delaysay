@@ -143,7 +143,7 @@ def respond_before_timeout(event, context):
     
     return build_response(
         f"Hi, <@{user_id}>! This is DelaySay, reporting for duty."
-        f"\nGive me a moment while I parse your request."
+        f" Give me a moment to parse your request."
     )
 
 
@@ -168,9 +168,9 @@ def lambda_handler_with_catch_all(event, context):
             post_and_print_info_and_confirm_success(
                 response_url,
                 "Sorry, I am having trouble parsing right now."
-                "\nTry again later or rephrase your command?"
+                " Try again later or rephrase your command?"
             )
         else:
             return build_response(
                 "Hi, there! Sorry, I'm confused right now."
-                "\nTry again later or rephrase your command?")
+                " Try again later or rephrase your command?")
