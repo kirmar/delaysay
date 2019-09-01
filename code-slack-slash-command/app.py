@@ -163,6 +163,14 @@ def lambda_handler_with_catch_all(event, context):
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         traceback.print_exc()
-        return build_response(
-            "Hi, there! Sorry, DelaySay is confused right now."
-            "\nTry again later or rephrase your command?")
+        if "parser/scheduler" in event and "response_url" in event:
+            response_url = event['response_url'][0]
+            post_and_print_info_and_confirm_success(
+                response_url,
+                "Sorry, I am having trouble parsing right now."
+                "\nTry again later or rephrase your command?"
+            )
+        else:
+            return build_response(
+                "Hi, there! Sorry, I'm confused right now."
+                "\nTry again later or rephrase your command?")
