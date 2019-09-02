@@ -76,12 +76,6 @@ def parse_and_schedule(params):
     user_tz = get_user_timezone(user_id, token)
     
     request_unix_timestamp = params['request_timestamp']
-    request_time = "<!date^" + str(request_unix_timestamp) + "^{time_secs}|"
-    request_time += (
-        datetime.utcfromtimestamp(request_unix_timestamp)
-        .strftime("%H:%M:%S")
-        + " UTC")
-    request_time += ">"
     
     try:
         parser = SlashCommandParser(
@@ -90,7 +84,7 @@ def parse_and_schedule(params):
     except CommandParseError:
         post_and_print_info_and_confirm_success(
             response_url,
-            f"\nSorry, I can't parse the request you made at {request_time}:"
+            f"\nSorry, I can't parse your request:"
             f"\n`{command} {command_text}`")
         return
     
@@ -108,9 +102,9 @@ def parse_and_schedule(params):
     
     post_and_print_info_and_confirm_success(
         response_url,
-        f"At {request_time}, you said:"
-        f"\n`{command} {command_text}`"
-        f'\nI will post "{message}" on your behalf at {time} on {date}.')
+        f"`{command} {command_text}`"
+        f'\nAt {time} on {date}, I will post "{message}" on your behalf.'
+    )
 
 
 def build_response(res):
@@ -143,7 +137,7 @@ def respond_before_timeout(event, context):
     
     return build_response(
         f"Hi, <@{user_id}>! This is DelaySay, reporting for duty."
-        f" Give me a moment to parse your request."
+        f" Give me a moment."
     )
 
 

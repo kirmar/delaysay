@@ -12,6 +12,7 @@ Globals:
     Name: "DelaySayAPI"
   Function:
     Timeout: 300
+    MemorySize: 1792
 
 Resources:
   UserTable:
