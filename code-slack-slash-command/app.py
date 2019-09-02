@@ -13,10 +13,11 @@ from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser, CommandParseError
 from datetime import datetime, timezone, timedelta
 
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+
 
 def get_user_auth_token(user_id):
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
     response = table.get_item(
         Key={
             'id': user_id

@@ -10,10 +10,11 @@ import requests
 import os
 from slack_app_info import CLIENT_ID, CLIENT_SECRET
 
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+
 
 def add_user_to_dynamodb(user_id, token):
-    dynamodb = boto3.resource("dynamodb")
-    table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
     table.put_item(
         Item={
             'id': user_id,
