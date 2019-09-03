@@ -67,7 +67,6 @@ def post_and_print_info_and_confirm_success(response_url, text):
 
 
 def parse_and_schedule(params):
-    user = params['user_name'][0]
     user_id = params['user_id'][0]
     channel_id = params['channel_id'][0]
     command_text = params['text'][0]
@@ -123,7 +122,6 @@ def respond_before_timeout(event, context):
     user_id = params['user_id'][0]
     command = params['command'][0]
     command_text = params['text'][0]
-    channel_id = params['channel_id'][0]
     
     params['request_timestamp'] = (
         int(event['multiValueHeaders']['X-Slack-Request-Timestamp'][0]))
