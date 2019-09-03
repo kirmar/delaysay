@@ -157,10 +157,13 @@ class SlashCommandParserTestCase(unittest.TestCase):
         self.assertEqual(p.get_time(), final_datetime)
 
         with self.assertRaises(TimeParseError):
-            # TODO: Fix this, then find another example that should
-            # raise the TimeParseError.
+            # TODO: Make this not raise a TimeParseError.
             final_datetime = datetime(2019, 8, 19, 12, 0, 0, tzinfo=self.gmt)
             p = SlashCommandParser("Tomorrow 12noon say Blah", initial_time)
+            # self.assertEqual(p.get_time(), final_datetime)
+        
+        with self.assertRaises(TimeParseError):
+            SlashCommandParser("What did Sam say about that?", initial_time)
 
         final_datetime = datetime(2019, 8, 20, 12, 0, 0, tzinfo=self.gmt)
         p = SlashCommandParser("Tomorrow 12 noon say Blah", initial_time)
