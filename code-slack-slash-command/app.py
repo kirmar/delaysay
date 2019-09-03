@@ -10,7 +10,8 @@ import requests
 import slack
 import os
 from urllib.parse import parse_qs
-from SlashCommandParser import SlashCommandParser, CommandParseError
+from SlashCommandParser import SlashCommandParser
+from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timezone, timedelta
 
 dynamodb = boto3.resource("dynamodb")
@@ -82,7 +83,7 @@ def parse_and_schedule(params):
         parser = SlashCommandParser(
             command_text,
             datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
-    except CommandParseError:
+    except (CommandParseError, TimeParseError):
         post_and_print_info_and_confirm_success(
             response_url,
             f"\nSorry, I can't parse your request:"

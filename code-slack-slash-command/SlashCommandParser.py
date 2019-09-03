@@ -1,13 +1,11 @@
 #!/usr/bin/env python3.7
 
 import re
+from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timedelta
 from dateparser import parse
 
 SECONDS_THRESHOLD = timedelta(minutes=10)
-
-class CommandParseError(Exception):
-    pass
 
 class SlashCommandParser:
     
@@ -18,6 +16,13 @@ class SlashCommandParser:
         self.initial_time = initial_time
         self.user_tz = initial_time.tzinfo
         self.command_text = command_text
+        try:
+            self.original_time, self.original_message = (
+                self.command_text.split("say", 1))
+        except ValueError:
+            raise CommandParseError(
+                self.command_text,
+                f'Cannot parse time and message from "{self.command_text}"')
         self.time, self.force_timezone = self._parse_time()
         self.message = self._parse_message()
         self.date_string = None
@@ -33,12 +38,7 @@ class SlashCommandParser:
         return re.sub(r"^0(?=[0-9]:)", "", time_string)
     
     def _parse_time(self):
-        try:
-            original_user_input = self.command_text.split("say", 1)[0]
-        except IndexError:
-            raise CommandParseError(
-                f'Cannot parse time from "{self.command_text}"')
-        user_input = original_user_input.rstrip(":").rstrip(",")
+        user_input = self.original_time.rstrip(":").rstrip(",")
         user_input = user_input.replace("hr", "hour").replace("h ", "hour ")
         user_input = user_input.replace("a ", "am ")
         user_input = user_input.replace("next", "")
@@ -50,8 +50,9 @@ class SlashCommandParser:
             }
         )
         if not scheduled_time:
-            raise CommandParseError(
-                f'Cannot parse time "{original_user_input}"')
+            raise TimeParseError(
+                self.original_time,
+                f'Cannot parse time "{self.original_time}"')
         force_timezone = bool(scheduled_time.tzinfo)
         if not scheduled_time.tzinfo:
             scheduled_time = scheduled_time.replace(tzinfo=self.user_tz)
@@ -65,8 +66,9 @@ class SlashCommandParser:
                 }
             )
             if not scheduled_time:
-                raise CommandParseError(
-                    f'Cannot parse time "{original_user_input}"')
+                raise TimeParseError(
+                    self.original_time,
+                    f'Cannot parse time "{self.original_time}"')
             force_timezone = bool(scheduled_time.tzinfo)
             if not scheduled_time.tzinfo:
                scheduled_time = scheduled_time.replace(tzinfo=self.user_tz)
@@ -131,13 +133,7 @@ class SlashCommandParser:
         return self.time_string_for_slack
     
     def _parse_message(self):
-        try:
-            message = self.command_text.split("say", 1)[1]
-        except IndexError:
-            raise CommandParseError(
-                f'Cannot parse message from "{self.command_text}"')
-        message = message.lstrip(":,").strip().strip("'").strip('"')
-        return message
+        return self.original_message.lstrip(":,").strip().strip("'").strip('"')
     
     def get_message(self):
         return self.message
