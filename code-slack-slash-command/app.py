@@ -70,7 +70,6 @@ def parse_and_schedule(params):
     user = params['user_name'][0]
     user_id = params['user_id'][0]
     channel_id = params['channel_id'][0]
-    command = params['command'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
@@ -86,8 +85,7 @@ def parse_and_schedule(params):
     except (CommandParseError, TimeParseError):
         post_and_print_info_and_confirm_success(
             response_url,
-            f"\nSorry, I can't parse your request:"
-            f"\n`{command} {command_text}`")
+            f"\nSorry, I can't parse your request.")
         return
     
     date = parser.get_date_string_for_slack()
@@ -104,8 +102,7 @@ def parse_and_schedule(params):
     
     post_and_print_info_and_confirm_success(
         response_url,
-        f"`{command} {command_text}`"
-        f'\nAt {time} on {date}, I will post "{message}" on your behalf.'
+        f'At {time} on {date}, I will post "{message}" on your behalf.'
     )
 
 
@@ -124,6 +121,8 @@ def respond_before_timeout(event, context):
     # Or print only the keys.
     params = parse_qs(event['body'])
     user_id = params['user_id'][0]
+    command = params['command'][0]
+    command_text = params['text'][0]
     channel_id = params['channel_id'][0]
     
     params['request_timestamp'] = (
@@ -138,8 +137,8 @@ def respond_before_timeout(event, context):
     )
     
     return build_response(
-        f"Hi, <@{user_id}>! This is DelaySay, reporting for duty."
-        f" Give me a moment."
+        f"Hi, <@{user_id}>! Give me a moment to parse your request:"
+        f"\n`{command} {command_text}`"
     )
 
 
