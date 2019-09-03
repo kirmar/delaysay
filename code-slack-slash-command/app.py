@@ -81,10 +81,16 @@ def parse_and_schedule(params):
         parser = SlashCommandParser(
             command_text,
             datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
-    except (CommandParseError, TimeParseError):
+    except CommandParseError as err:
         post_and_print_info_and_confirm_success(
             response_url,
-            f"\nSorry, I can't parse your request.")
+            f'Sorry, I don\'t understand the command "{err.command_text}".'
+            "\nPlease use this format: /delay [time] say [message]")
+        return
+    except TimeParseError as err:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            f'Sorry, I don\'t understand the time "{err.time_text}".')
         return
     
     date = parser.get_date_string_for_slack()
@@ -93,11 +99,34 @@ def parse_and_schedule(params):
     message = parser.get_message()
     
     slack_client = slack.WebClient(token=token)
-    slack_client.chat_scheduleMessage(
-        channel=channel_id,
-        post_at=unix_timestamp,
-        text=message
-    )
+    try:
+        slack_client.chat_scheduleMessage(
+            channel=channel_id,
+            post_at=unix_timestamp,
+            text=message
+        )
+    except slack.errors.SlackApiError as err:
+        if err.response['error'] == "time_in_past":
+            if unix_timestamp < request_unix_timestamp:
+                apology = "Sorry, I can\'t schedule a message in the past."
+            else:
+                apology = (
+                    "Sorry, I can\'t schedule in the extremely near future.")
+            post_and_print_info_and_confirm_success(response_url, apology)
+            return
+        elif err.response['error'] == "time_too_far":
+            post_and_print_info_and_confirm_success(
+                response_url,
+                "Sorry, I can\'t schedule more than 120 days in the future.")
+            return
+        elif err.response['error'] == "time_too_far":
+            post_and_print_info_and_confirm_success(
+                response_url,
+                "Sorry, your message is too long:"
+                f'\n"{message}"')
+            return
+        else:
+            raise
     
     post_and_print_info_and_confirm_success(
         response_url,
@@ -160,10 +189,11 @@ def lambda_handler_with_catch_all(event, context):
             response_url = event['response_url'][0]
             post_and_print_info_and_confirm_success(
                 response_url,
-                "Sorry, I am having trouble parsing right now."
-                " Try again later or rephrase your command?"
+                "Sorry, there was an error. Please try again later or rephrase"
+                " your command. If the error persists, try contacting my"
+                " developers."
             )
         else:
             return build_response(
-                "Hi, there! Sorry, I'm confused right now."
-                " Try again later or rephrase your command?")
+                "Hi, there! Sorry, I'm confused right now. If the error"
+                " persists, try contacting my developers.")
