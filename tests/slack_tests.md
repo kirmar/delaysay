@@ -3,6 +3,10 @@ These should work:
 `/delay 1:00pm say "It's 1:00pm!"`
 `/delay 3:30pm EDT say "It's 3:00pm EDT!"`
 
+Also:
+`/delay help`
+
+
 DelaySay should say it can't schedule in the past:
 `/delay 2019-09-01 1pm say 2019-09-01 1pm`
 

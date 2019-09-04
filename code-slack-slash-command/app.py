@@ -9,10 +9,12 @@ import boto3
 import requests
 import slack
 import os
+import re
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timezone, timedelta
+from random import sample
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
@@ -134,6 +136,31 @@ def parse_and_schedule(params):
     )
 
 
+def build_help_response(params):
+    user_id = params['user_id'][0]
+    examples = [
+        "2 min say It's been :two: minutes.",
+        "1 hour say Hi, all! :wave:",
+        "9am PST say Good morning! :sunny:",
+        "12 noon say It's time for lunch :yum:",
+        "September 13, say It's International Chocolate Day! :chocolate_bar:",
+        "January 1, 2020, 12am EST, say Happy New Year! :tada:"
+    ]
+    three_examples = sample(examples, 2)
+    return {
+        'statusCode': "200",
+        'body':
+            f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
+            f"\n        `/delay {three_examples[0]}`"
+            f"\n        `/delay {three_examples[1]}`"
+            "\nI will send the message from your username at the date and time"
+            " you specify, up to 120 days in the future.",
+        'headers': {
+            'Content-Type': "application/json",
+        }
+    }
+
+
 def build_response(res):
     return {
         'statusCode': "200",
@@ -151,6 +178,10 @@ def respond_before_timeout(event, context):
     user_id = params['user_id'][0]
     command = params['command'][0]
     command_text = params['text'][0]
+    
+    command_text_only_letters = re.compile('[^a-zA-Z]').sub('', command_text)
+    if command_text_only_letters == "help":
+        return build_help_response(params)
     
     params['request_timestamp'] = (
         int(event['multiValueHeaders']['X-Slack-Request-Timestamp'][0]))
