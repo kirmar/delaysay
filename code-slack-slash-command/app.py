@@ -87,7 +87,8 @@ def parse_and_schedule(params):
         post_and_print_info_and_confirm_success(
             response_url,
             f'Sorry, I don\'t understand the command "{err.command_text}".'
-            "\nPlease use this format: /delay [time] say [message]")
+            "\nPlease use this format: `/delay [time] say [message]`"
+            "\nFor examples: `/delay help`")
         return
     except TimeParseError as err:
         post_and_print_info_and_confirm_success(
