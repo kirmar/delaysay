@@ -136,6 +136,38 @@ def parse_and_schedule(params):
     )
 
 
+def list_scheduled_messages(params):
+    channel_id = params['channel_id'][0]
+    user_id = params['user_id'][0]
+    response_url = params['response_url'][0]
+    token = get_user_auth_token(user_id)
+    r = requests.post(
+        url="https://slack.com/api/chat.scheduledMessages.list",
+        data={
+            'channel': channel_id
+        },
+        headers={
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Authorization': "Bearer " + token
+        }
+    )
+    if r.status_code != 200:
+        print(r.status_code, r.reason)
+        raise Exception("requests.post failed")
+    scheduled_messages = json.loads(r.content)['scheduled_messages']
+    scheduled_messages.sort(key=lambda message_info: message_info['post_at'])
+    res = f"Here are the messages you have scheduled:"
+    for i, message_info in enumerate(scheduled_messages):
+        timestamp = message_info['post_at']
+        res += (
+           f"\n    " + str(i + 1) + ") <!date^" + str(timestamp)
+           + "^{time_secs} on {date_lon}|"
+           + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+           + " UTC>")
+    res += "\nTo cancel the first message, reply with `/delay delete 1`."
+    post_and_print_info_and_confirm_success(response_url, res)
+
+
 def build_help_response(params):
     user_id = params['user_id'][0]
     examples = [
@@ -182,10 +214,13 @@ def respond_before_timeout(event, context):
     command_text_only_letters = re.compile('[^a-zA-Z]').sub('', command_text)
     if command_text_only_letters == "help":
         return build_help_response(params)
+    if command_text_only_letters == "list":
+        params['currentFunctionOfFunction'] = "list"
+    else:
+        params['currentFunctionOfFunction'] = "parse/schedule"
     
     params['request_timestamp'] = (
         int(event['multiValueHeaders']['X-Slack-Request-Timestamp'][0]))
-    params['parser/scheduler'] = True
     client = boto3.client('lambda')
     client.invoke(
         ClientContext="DelaySay handler",
@@ -201,9 +236,13 @@ def respond_before_timeout(event, context):
 
 
 def lambda_handler(event, context):
-    if "parser/scheduler" in event:
+    function = event.get("currentFunctionOfFunction")
+    if function == "parse/schedule":
         print("~~~   PARSER / SCHEDULER   ~~~")
         return parse_and_schedule(event)
+    elif function == "list":
+        print("~~~   LISTER OF SCHEDULED MESSAGES   ~~~")
+        return list_scheduled_messages(event)
     else:
         print("~~~   FIRST RESPONDER BEFORE TIMEOUT   ~~~")
         return respond_before_timeout(event, context)
@@ -216,7 +255,7 @@ def lambda_handler_with_catch_all(event, context):
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         traceback.print_exc()
-        if "parser/scheduler" in event and "response_url" in event:
+        if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             post_and_print_info_and_confirm_success(
                 response_url,
