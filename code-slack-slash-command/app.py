@@ -136,11 +136,7 @@ def parse_and_schedule(params):
     )
 
 
-def list_scheduled_messages(params):
-    channel_id = params['channel_id'][0]
-    user_id = params['user_id'][0]
-    response_url = params['response_url'][0]
-    token = get_user_auth_token(user_id)
+def get_scheduled_messages(channel_id, token):
     r = requests.post(
         url="https://slack.com/api/chat.scheduledMessages.list",
         data={
@@ -156,6 +152,15 @@ def list_scheduled_messages(params):
         raise Exception("requests.post failed")
     scheduled_messages = json.loads(r.content)['scheduled_messages']
     scheduled_messages.sort(key=lambda message_info: message_info['post_at'])
+    return scheduled_messages
+
+
+def list_scheduled_messages(params):
+    channel_id = params['channel_id'][0]
+    user_id = params['user_id'][0]
+    response_url = params['response_url'][0]
+    token = get_user_auth_token(user_id)
+    scheduled_messages = get_scheduled_messages(channel_id, token)
     res = f"Here are the messages you have scheduled:"
     for i, message_info in enumerate(scheduled_messages):
         timestamp = message_info['post_at']
@@ -165,6 +170,40 @@ def list_scheduled_messages(params):
            + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
            + " UTC>")
     res += "\nTo cancel the first message, reply with `/delay delete 1`."
+    post_and_print_info_and_confirm_success(response_url, res)
+
+
+def delete_scheduled_message(params):
+    channel_id = params['channel_id'][0]
+    user_id = params['user_id'][0]
+    response_url = params['response_url'][0]
+    command_text = params['text'][0]
+    token = get_user_auth_token(user_id)
+    scheduled_messages = get_scheduled_messages(channel_id, token)
+    ids = [message_info['id'] for message_info in scheduled_messages]
+    command_text_only_numbers = re.compile('[^0-9]').sub('', command_text)
+    # The array `ids` use 0-based indexing, but the user uses 1-based.
+    i = int(command_text_only_numbers) - 1
+    try:
+        res = f"I will delete message {command_text_only_numbers}."
+        r = requests.post(
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            data={
+                'channel': channel_id,
+                'scheduled_message_id': ids[i]
+            },
+            headers={
+                'Content-Type': "application/x-www-form-urlencoded",
+                'Authorization': "Bearer " + token
+            }
+        )
+        if r.status_code != 200:
+            print(r.status_code, r.reason)
+            raise Exception("requests.post failed")
+    except IndexError:
+        res = (
+            f"Message {command_text_only_numbers} does not exist."
+            "\nTo list the scheduled messages, reply with `/delay list`.")
     post_and_print_info_and_confirm_success(response_url, res)
 
 
@@ -216,6 +255,8 @@ def respond_before_timeout(event, context):
         return build_help_response(params)
     if command_text_only_letters == "list":
         params['currentFunctionOfFunction'] = "list"
+    elif command_text_only_letters == "delete":
+        params['currentFunctionOfFunction'] = "delete"
     else:
         params['currentFunctionOfFunction'] = "parse/schedule"
     
@@ -243,6 +284,9 @@ def lambda_handler(event, context):
     elif function == "list":
         print("~~~   LISTER OF SCHEDULED MESSAGES   ~~~")
         return list_scheduled_messages(event)
+    elif function == "delete":
+        print("~~~   DELETER OF SCHEDULED MESSAGE   ~~~")
+        return delete_scheduled_message(event)
     else:
         print("~~~   FIRST RESPONDER BEFORE TIMEOUT   ~~~")
         return respond_before_timeout(event, context)

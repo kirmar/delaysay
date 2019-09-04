@@ -5,6 +5,8 @@ These should work:
 
 Also:
 `/delay help`
+`/delay list`
+`/delay delete 1`
 
 
 DelaySay should say it can't schedule in the past:
@@ -24,3 +26,6 @@ DelaySay should say that message text must be provided:
 
 DelaySay should say it can't parse the command / find the time or message:
 `/delay bogus`
+
+DelaySay should say the message doesn't exist:
+`/delay delete 500`
