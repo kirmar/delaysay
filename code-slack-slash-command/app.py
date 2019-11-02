@@ -178,17 +178,39 @@ def list_scheduled_messages(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
+def validate_index_against_scheduled_messages(i, ids):
+    if not ids:
+        return "You have no scheduled messages in this channel."
+    if i == -1:
+        return (
+            f"Message 0 does not exist. To cancel your first message, type:"
+            f"\n        `/delay delete 1`"
+            "\nTo list the scheduled messages, reply with `/delay list`.")
+    if i >= len(ids):
+        return (
+            f"Message {i + 1} does not exist."
+            "\nTo list the scheduled messages, reply with `/delay list`.")
+    return ""
+
+
 def delete_scheduled_message(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
     response_url = params['response_url'][0]
     command_text = params['text'][0]
+    
     token = get_user_auth_token(user_id)
     scheduled_messages = get_scheduled_messages(channel_id, token)
     ids = [message_info['id'] for message_info in scheduled_messages]
     command_text_only_numbers = re.compile('[^0-9]').sub('', command_text)
+    
     # The array `ids` use 0-based indexing, but the user uses 1-based.
     i = int(command_text_only_numbers) - 1
+    
+    res = validate_index_against_scheduled_messages(i, ids)
+    if res:
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
     
     slack_client = slack.WebClient(token=token)
     
@@ -198,10 +220,6 @@ def delete_scheduled_message(params):
             scheduled_message_id=ids[i]
         )
         res = f"I successfully deleted message {command_text_only_numbers}."
-    except IndexError:
-        res = (
-            f"Message {command_text_only_numbers} does not exist."
-            "\nTo list the scheduled messages, reply with `/delay list`.")
     except slack.errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
