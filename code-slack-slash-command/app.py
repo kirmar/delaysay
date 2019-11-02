@@ -233,6 +233,16 @@ def delete_scheduled_message(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
+def build_response(res):
+    return {
+        'statusCode': "200",
+        'body': res,
+        'headers': {
+            'Content-Type': "application/json",
+        }
+    }
+
+
 def build_help_response(params):
     user_id = params['user_id'][0]
     examples = [
@@ -244,32 +254,16 @@ def build_help_response(params):
         "January 1, 2020, 12am EST, say Happy New Year! :tada:"
     ]
     two_examples = sample(examples, 2)
-    return {
-        'statusCode': "200",
-        'body':
-            f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
-            f"\n        `/delay [time] say [message]`"
-            f"\n        `/delay {two_examples[0]}`"
-            f"\n        `/delay {two_examples[1]}`"
-            "\nI will send the message from your username at the specified"
-            " date and time, up to 120 days in the future."
-            "\nTo see your scheduled messages in this channel or cancel the"
-            " next message, type:"
-            "\n        `/delay list`        or        `/delay delete 1`",
-        'headers': {
-            'Content-Type': "application/json",
-        }
-    }
-
-
-def build_response(res):
-    return {
-        'statusCode': "200",
-        'body': res,
-        'headers': {
-            'Content-Type': "application/json",
-        }
-    }
+    return build_response(
+        f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
+        f"\n        `/delay [time] say [message]`"
+        f"\n        `/delay {two_examples[0]}`"
+        f"\n        `/delay {two_examples[1]}`"
+        "\nI will send the message from your username at the specified date"
+        " and time, up to 120 days in the future."
+        "\nTo see your scheduled messages in this channel or cancel the next"
+        " message, type:"
+        "\n        `/delay list`        or        `/delay delete 1`")
 
 
 def respond_before_timeout(event, context):
