@@ -25,10 +25,11 @@ def add_user_to_dynamodb(user_id, token):
 
 def build_response(res, err=None):
     return {
-        'statusCode': "400" if err else "200",
-        'body': str(err) if err else res,
+        'statusCode': "400" if err else "302",
+        'body': res,
         'headers': {
             'Content-Type': "application/json",
+            'Location': "https://delaysay.com/added/"
         }
     }
 
