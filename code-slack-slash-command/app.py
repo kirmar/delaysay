@@ -68,75 +68,6 @@ def post_and_print_info_and_confirm_success(response_url, text):
     return r
 
 
-def parse_and_schedule(params):
-    user_id = params['user_id'][0]
-    channel_id = params['channel_id'][0]
-    command_text = params['text'][0]
-    response_url = params['response_url'][0]
-    
-    token = get_user_auth_token(user_id)
-    user_tz = get_user_timezone(user_id, token)
-    
-    request_unix_timestamp = params['request_timestamp']
-    
-    try:
-        parser = SlashCommandParser(
-            command_text,
-            datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
-    except CommandParseError as err:
-        post_and_print_info_and_confirm_success(
-            response_url,
-            f'Sorry, I don\'t understand the command "{err.command_text}".'
-            "\nPlease use this format: `/delay [time] say [message]`"
-            "\nFor examples: `/delay help`")
-        return
-    except TimeParseError as err:
-        post_and_print_info_and_confirm_success(
-            response_url,
-            f'Sorry, I don\'t understand the time "{err.time_text}".')
-        return
-    
-    date = parser.get_date_string_for_slack()
-    time = parser.get_time_string_for_slack()
-    unix_timestamp = datetime.timestamp(parser.get_time())
-    message = parser.get_message()
-    
-    slack_client = slack.WebClient(token=token)
-    try:
-        slack_client.chat_scheduleMessage(
-            channel=channel_id,
-            post_at=unix_timestamp,
-            text=message
-        )
-    except slack.errors.SlackApiError as err:
-        if err.response['error'] == "time_in_past":
-            if unix_timestamp < request_unix_timestamp:
-                apology = "Sorry, I can\'t schedule a message in the past."
-            else:
-                apology = (
-                    "Sorry, I can\'t schedule in the extremely near future.")
-            post_and_print_info_and_confirm_success(response_url, apology)
-            return
-        elif err.response['error'] == "time_too_far":
-            post_and_print_info_and_confirm_success(
-                response_url,
-                "Sorry, I can\'t schedule more than 120 days in the future.")
-            return
-        elif err.response['error'] == "time_too_far":
-            post_and_print_info_and_confirm_success(
-                response_url,
-                "Sorry, your message is too long:"
-                f'\n"{message}"')
-            return
-        else:
-            raise
-    
-    post_and_print_info_and_confirm_success(
-        response_url,
-        f'At {time} on {date}, I will post "{message}" on your behalf.'
-    )
-
-
 def get_scheduled_messages(channel_id, token):
     r = requests.post(
         url="https://slack.com/api/chat.scheduledMessages.list",
@@ -243,7 +174,7 @@ def build_response(res):
     }
 
 
-def build_help_response(params):
+def build_help_response(params, user_asked_for_help=True):
     user_id = params['user_id'][0]
     examples = [
         "2 min say It's been :two: minutes.",
@@ -254,8 +185,11 @@ def build_help_response(params):
         "January 1, 2020, 12am EST, say Happy New Year! :tada:"
     ]
     two_examples = sample(examples, 2)
-    return build_response(
-        f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
+    if user_asked_for_help:
+      res = f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
+    else:
+      res = "Here is the command format:"
+    res += (
         f"\n        `/delay [time] say [message]`"
         f"\n        `/delay {two_examples[0]}`"
         f"\n        `/delay {two_examples[1]}`"
@@ -264,6 +198,75 @@ def build_help_response(params):
         "\nTo see your scheduled messages in this channel or cancel the next"
         " message, type:"
         "\n        `/delay list`        or        `/delay delete 1`")
+    return build_response(res)
+
+
+def parse_and_schedule(params):
+    user_id = params['user_id'][0]
+    channel_id = params['channel_id'][0]
+    command_text = params['text'][0]
+    response_url = params['response_url'][0]
+    
+    token = get_user_auth_token(user_id)
+    user_tz = get_user_timezone(user_id, token)
+    
+    request_unix_timestamp = params['request_timestamp']
+    
+    try:
+        parser = SlashCommandParser(
+            command_text,
+            datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
+    except CommandParseError as err:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            f'Sorry, I don\'t understand the command "{err.command_text}".\n'
+            + build_help_response(params, user_asked_for_help=False)['body'])
+        return
+    except TimeParseError as err:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            f'Sorry, I don\'t understand the time "{err.time_text}".')
+        return
+    
+    date = parser.get_date_string_for_slack()
+    time = parser.get_time_string_for_slack()
+    unix_timestamp = datetime.timestamp(parser.get_time())
+    message = parser.get_message()
+    
+    slack_client = slack.WebClient(token=token)
+    try:
+        slack_client.chat_scheduleMessage(
+            channel=channel_id,
+            post_at=unix_timestamp,
+            text=message
+        )
+    except slack.errors.SlackApiError as err:
+        if err.response['error'] == "time_in_past":
+            if unix_timestamp < request_unix_timestamp:
+                apology = "Sorry, I can\'t schedule a message in the past."
+            else:
+                apology = (
+                    "Sorry, I can\'t schedule in the extremely near future.")
+            post_and_print_info_and_confirm_success(response_url, apology)
+            return
+        elif err.response['error'] == "time_too_far":
+            post_and_print_info_and_confirm_success(
+                response_url,
+                "Sorry, I can\'t schedule more than 120 days in the future.")
+            return
+        elif err.response['error'] == "time_too_far":
+            post_and_print_info_and_confirm_success(
+                response_url,
+                "Sorry, your message is too long:"
+                f'\n"{message}"')
+            return
+        else:
+            raise
+    
+    post_and_print_info_and_confirm_success(
+        response_url,
+        f'At {time} on {date}, I will post "{message}" on your behalf.'
+    )
 
 
 def respond_before_timeout(event, context):
