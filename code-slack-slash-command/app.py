@@ -162,16 +162,19 @@ def list_scheduled_messages(params):
     response_url = params['response_url'][0]
     token = get_user_auth_token(user_id)
     scheduled_messages = get_scheduled_messages(channel_id, token)
-    res = f"Here are the messages you have scheduled:"
-    for i, message_info in enumerate(scheduled_messages):
-        print(message_info)
-        timestamp = message_info['post_at']
-        res += (
-           f"\n    " + str(i + 1) + ") <!date^" + str(timestamp)
-           + "^{time_secs} on {date_long}|"
-           + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-           + " UTC>")
-    res += "\nTo cancel the first message, reply with `/delay delete 1`."
+    if scheduled_messages:
+        res = f"Here are the messages you have scheduled:"
+        for i, message_info in enumerate(scheduled_messages):
+            print(message_info)
+            timestamp = message_info['post_at']
+            res += (
+               f"\n    " + str(i + 1) + ") <!date^" + str(timestamp)
+               + "^{time_secs} on {date_long}|"
+               + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+               + " UTC>")
+        res += "\nTo cancel the first message, reply with `/delay delete 1`."
+    else:
+        res = "Hm... You have no messages scheduled in this channel."
     post_and_print_info_and_confirm_success(response_url, res)
 
 
