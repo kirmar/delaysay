@@ -109,13 +109,14 @@ def list_scheduled_messages(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
-def validate_index_against_scheduled_messages(i, ids):
+def validate_index_against_scheduled_messages(i, ids, command_text):
     if not ids:
         return "You have no scheduled messages in this channel."
     if i == -1:
+        command_phrase = command_text.rsplit(maxsplit=1)[0].rstrip() + " 1"
         return (
             f"Message 0 does not exist. To cancel your first message, type:"
-            f"\n        `/delay delete 1`"
+            f"\n        `/delay {command_phrase}`"
             "\nTo list the scheduled messages, reply with `/delay list`.")
     if i >= len(ids):
         return (
@@ -138,7 +139,7 @@ def delete_scheduled_message(params):
     # The array `ids` use 0-based indexing, but the user uses 1-based.
     i = int(command_text_only_numbers) - 1
     
-    res = validate_index_against_scheduled_messages(i, ids)
+    res = validate_index_against_scheduled_messages(i, ids, command_text)
     if res:
         post_and_print_info_and_confirm_success(response_url, res)
         return
@@ -150,11 +151,11 @@ def delete_scheduled_message(params):
             channel=channel_id,
             scheduled_message_id=ids[i]
         )
-        res = f"I successfully deleted message {command_text_only_numbers}."
+        res = f"I successfully cancelled message {command_text_only_numbers}."
     except slack.errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
-                f"I cannot delete message {command_text_only_numbers};"
+                f"I cannot cancel message {command_text_only_numbers};"
                 " it already sent or will send within 60 seconds.")
         else:
             raise
@@ -282,7 +283,7 @@ def respond_before_timeout(event, context):
         return build_help_response(params)
     if command_text_only_letters == "list":
         params['currentFunctionOfFunction'] = "list"
-    elif command_text_only_letters == "delete":
+    elif command_text_only_letters in ["delete", "cancel", "remove"]:
         params['currentFunctionOfFunction'] = "delete"
     else:
         params['currentFunctionOfFunction'] = "parse/schedule"
