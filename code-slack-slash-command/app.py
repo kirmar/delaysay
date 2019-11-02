@@ -222,13 +222,13 @@ def build_help_response(params):
         "September 13, say It's International Chocolate Day! :chocolate_bar:",
         "January 1, 2020, 12am EST, say Happy New Year! :tada:"
     ]
-    three_examples = sample(examples, 2)
+    two_examples = sample(examples, 2)
     return {
         'statusCode': "200",
         'body':
             f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
-            f"\n        `/delay {three_examples[0]}`"
-            f"\n        `/delay {three_examples[1]}`"
+            f"\n        `/delay {two_examples[0]}`"
+            f"\n        `/delay {two_examples[1]}`"
             "\nI will send the message from your username at the date and time"
             " you specify, up to 120 days in the future.",
         'headers': {
