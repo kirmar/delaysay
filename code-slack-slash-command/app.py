@@ -189,26 +189,29 @@ def delete_scheduled_message(params):
     command_text_only_numbers = re.compile('[^0-9]').sub('', command_text)
     # The array `ids` use 0-based indexing, but the user uses 1-based.
     i = int(command_text_only_numbers) - 1
+    
+    slack_client = slack.WebClient(token=token)
+    
     try:
-        res = f"I will delete message {command_text_only_numbers}."
-        r = requests.post(
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            data={
-                'channel': channel_id,
-                'scheduled_message_id': ids[i]
-            },
-            headers={
-                'Content-Type': "application/x-www-form-urlencoded",
-                'Authorization': "Bearer " + token
-            }
+        slack_client.chat_deleteScheduledMessage(
+            channel=channel_id,
+            scheduled_message_id=ids[i]
         )
-        if r.status_code != 200:
-            print(r.status_code, r.reason)
-            raise Exception("requests.post failed")
+        res = f"I successfully deleted message {command_text_only_numbers}."
     except IndexError:
         res = (
             f"Message {command_text_only_numbers} does not exist."
             "\nTo list the scheduled messages, reply with `/delay list`.")
+    except slack.errors.SlackApiError as err:
+        if err.response['error'] == "invalid_scheduled_message_id":
+            res = (
+                f"I cannot delete message {command_text_only_numbers};"
+                " it already sent or will send within 60 seconds.")
+        else:
+            raise
+    except:
+        raise
+    
     post_and_print_info_and_confirm_success(response_url, res)
 
 
