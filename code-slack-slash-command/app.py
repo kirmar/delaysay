@@ -12,7 +12,8 @@ import os
 import re
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
-from DelaySayExceptions import CommandParseError, TimeParseError
+from DelaySayExceptions import (
+    UserAuthenticateError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
 
@@ -29,7 +30,7 @@ def get_user_auth_token(user_id):
     try:
         return response['Item']['token']
     except KeyError:
-        raise Exception("User did not authenticate")
+        raise UserAuthenticateError("User did not authenticate")
 
 
 def get_user_timezone(user_id, token):
@@ -91,7 +92,17 @@ def list_scheduled_messages(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
     response_url = params['response_url'][0]
-    token = get_user_auth_token(user_id)
+    
+    try:
+        token = get_user_auth_token(user_id)
+    except UserAuthenticateError:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            "You haven't authenticated DelaySay yet."
+            "\nPlease grant DelaySay permission to schedule your messages:"
+            "\nhttps://delaysay.com/add/")
+        return
+    
     scheduled_messages = get_scheduled_messages(channel_id, token)
     if scheduled_messages:
         res = f"Here are the messages you have scheduled:"
@@ -131,7 +142,16 @@ def delete_scheduled_message(params):
     response_url = params['response_url'][0]
     command_text = params['text'][0]
     
-    token = get_user_auth_token(user_id)
+    try:
+        token = get_user_auth_token(user_id)
+    except UserAuthenticateError:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            "You haven't authenticated DelaySay yet."
+            "\nPlease grant DelaySay permission to schedule your messages:"
+            "\nhttps://delaysay.com/add/")
+        return
+    
     scheduled_messages = get_scheduled_messages(channel_id, token)
     ids = [message_info['id'] for message_info in scheduled_messages]
     command_text_only_numbers = re.compile('[^0-9]').sub('', command_text)
@@ -197,7 +217,7 @@ def build_help_response(params, user_asked_for_help=True):
         "\nI will send the message from your username at the specified date"
         " and time, up to 120 days in the future."
         "\nTo see your scheduled messages in this channel or cancel the next"
-        " message, type:"
+        " scheduled message, type:"
         "\n        `/delay list`        or        `/delay delete 1`")
     return build_response(res)
 
@@ -208,7 +228,16 @@ def parse_and_schedule(params):
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
-    token = get_user_auth_token(user_id)
+    try:
+        token = get_user_auth_token(user_id)
+    except UserAuthenticateError:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            "You haven't authenticated DelaySay yet."
+            "\nPlease grant DelaySay permission to schedule your messages:"
+            "\nhttps://delaysay.com/add/")
+        return
+    
     user_tz = get_user_timezone(user_id, token)
     
     request_unix_timestamp = params['request_timestamp']

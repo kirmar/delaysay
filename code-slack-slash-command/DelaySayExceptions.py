@@ -1,5 +1,8 @@
 #!/usr/bin/env python3.7
 
+class UserAuthenticateError(Exception):
+    pass
+
 class CommandParseError(Exception):
     def __init__(self, command_text, message):
         super().__init__(message)
