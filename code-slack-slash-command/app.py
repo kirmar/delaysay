@@ -305,10 +305,10 @@ def respond_before_timeout(event, context):
     params = parse_qs(event['body'])
     user_id = params['user_id'][0]
     command = params['command'][0]
-    command_text = params['text'][0]
+    command_text = params.get('text', [""])[0]
     
     command_text_only_letters = re.compile('[^a-zA-Z]').sub('', command_text)
-    if command_text_only_letters == "help":
+    if command_text_only_letters in ["help", ""]:
         return build_help_response(params)
     if command_text_only_letters == "list":
         params['currentFunctionOfFunction'] = "list"
