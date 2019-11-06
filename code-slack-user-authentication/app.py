@@ -9,16 +9,18 @@ import boto3
 import requests
 import os
 from slack_app_info import CLIENT_ID, CLIENT_SECRET
+from datetime import datetime
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 
-def add_user_to_dynamodb(user_id, token):
+def add_user_to_dynamodb(user_id, token, create_time):
     table.put_item(
         Item={
             'id': user_id,
-            'token': token
+            'token': token,
+            'create_time': create_time
         }
     )
 
@@ -58,7 +60,8 @@ def lambda_handler(event, context):
             ' "Add to Slack" link in the project doc.')
     token = content['access_token']
     user_id = content['user_id']
-    add_user_to_dynamodb(user_id, token)
+    create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    add_user_to_dynamodb(user_id, token, create_time)
     return build_response("Hello, world!")
 
 
