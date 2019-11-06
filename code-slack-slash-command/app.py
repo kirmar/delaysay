@@ -227,6 +227,7 @@ def parse_and_schedule(params):
     channel_id = params['channel_id'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
+    print(list(params.keys()))
     
     try:
         token = get_user_auth_token(user_id)

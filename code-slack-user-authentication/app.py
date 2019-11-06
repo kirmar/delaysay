@@ -15,15 +15,19 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 
-def add_user_to_dynamodb(user_id, token, team_id, create_time):
-    table.put_item(
-        Item={
-            'id': user_id,
-            'token': token,
-            'team_id': team_id,
-            'create_time': create_time
-        }
-    )
+def add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time):
+    item = {
+        'id': user_id,
+        'token': token,
+        'team_id': team_id,
+        'enterprise_id': enterprise_id,
+        'create_time': create_time
+    }
+    for key in list(item):
+        if not item[key]:
+            del item[key]
+    assert item['id'] and item['token']
+    table.put_item(Item=item)
 
 
 def build_response(res, err=None):
@@ -62,8 +66,9 @@ def lambda_handler(event, context):
     token = content['access_token']
     user_id = content['user_id']
     team_id = content['team_id']
+    enterprise_id = content.get('enterprise_id', None)
     create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    add_user_to_dynamodb(user_id, token, team_id, create_time)
+    add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time)
     return build_response("Hello, world!")
 
 
