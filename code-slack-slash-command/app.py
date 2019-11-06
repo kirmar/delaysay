@@ -16,6 +16,7 @@ from DelaySayExceptions import (
     UserAuthenticateError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
+from slack_app_info import AUTHENTICATION_URL
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
@@ -91,6 +92,7 @@ def get_scheduled_messages(channel_id, token):
 def list_scheduled_messages(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
+    team_id = params['team_id'][0]
     response_url = params['response_url'][0]
     
     try:
@@ -100,7 +102,7 @@ def list_scheduled_messages(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\nhttps://delaysay.com/add/")
+            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -139,6 +141,7 @@ def validate_index_against_scheduled_messages(i, ids, command_text):
 def delete_scheduled_message(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
+    team_id = params['team_id'][0]
     response_url = params['response_url'][0]
     command_text = params['text'][0]
     
@@ -149,7 +152,7 @@ def delete_scheduled_message(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\nhttps://delaysay.com/add/")
+            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -224,10 +227,10 @@ def build_help_response(params, user_asked_for_help=True):
 
 def parse_and_schedule(params):
     user_id = params['user_id'][0]
+    team_id = params['team_id'][0]
     channel_id = params['channel_id'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
-    print(list(params.keys()))
     
     try:
         token = get_user_auth_token(user_id)
@@ -236,7 +239,7 @@ def parse_and_schedule(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\nhttps://delaysay.com/add/")
+            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
         return
     
     user_tz = get_user_timezone(user_id, token)
