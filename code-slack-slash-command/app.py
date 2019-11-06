@@ -356,15 +356,15 @@ def lambda_handler_with_catch_all(event, context):
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         traceback.print_exc()
+        res = (
+            "If the error persists, try contacting my developers at"
+            " team@delaysay.com.")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
-            post_and_print_info_and_confirm_success(
-                response_url,
+            res = (
                 "Sorry, there was an error. Please try again later or rephrase"
-                " your command. If the error persists, try contacting my"
-                " developers."
-            )
+                " your command. ") + res
+            post_and_print_info_and_confirm_success(response_url, res)
         else:
-            return build_response(
-                "Hi, there! Sorry, I'm confused right now. If the error"
-                " persists, try contacting my developers.")
+            res = "Hi, there! Sorry, I'm confused right now. " + res
+            return build_response(res)
