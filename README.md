@@ -2,6 +2,8 @@
 
 A Slack app that schedules messages
 
+Note: These are only rough directions that may need a lot of updates.
+
 
 ## Prerequisites
 
@@ -95,12 +97,25 @@ Configure the redirect URL:
 
 Create a file code-slack-user-authentication/slack_app_info.py with two variables, "CLIENT_ID" AND "CLIENT_SECRET". Paste the values from **"App Credentials"** under **"Basic Information"** in your Slack app.
 
+
 ## Install Slack App in workspace
 
 TBD
 
 Note: Each individual user who wants to use DelaySay may have to
 authorize the app to post messages with their identity.
+
+
+## Activate Public Distribution
+
+Under **"Features"**:
+
+- Click **"Manage Distribution"**
+- Click **"Activate Public Distribution"**
+
+Create a file code-slack-slash-command/slack_app_info.py with a variable "AUTHENTICATION_URL" that contains the value of **"Shareable URL"** in your Slack app.
+
+Also copy the **"Embeddable Slack Button"** to your app's website.
 
 
 ## Cleanup
