@@ -113,9 +113,7 @@ Under **"Features"**:
 - Click **"Manage Distribution"**
 - Click **"Activate Public Distribution"**
 
-Create a file code-slack-slash-command/slack_app_info.py with a variable "AUTHENTICATION_URL" that contains the value of **"Shareable URL"** in your Slack app.
-
-Also copy the **"Embeddable Slack Button"** to your app's website.
+Copy the **"Shareable URL"** and **"Embeddable Slack Button"** to your app's website.
 
 
 ## Cleanup

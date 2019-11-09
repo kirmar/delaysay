@@ -16,7 +16,6 @@ from DelaySayExceptions import (
     UserAuthenticateError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
-from slack_app_info import AUTHENTICATION_URL
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
@@ -102,7 +101,7 @@ def list_scheduled_messages(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
+            "\ndelaysay.com/add/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -152,7 +151,7 @@ def delete_scheduled_message(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
+            "\ndelaysay.com/add/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -239,7 +238,7 @@ def parse_and_schedule(params):
             response_url,
             "You haven't authenticated DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
-            "\n" + AUTHENTICATION_URL + "&team=" + team_id)
+            "\ndelaysay.com/add/?team=" + team_id)
         return
     
     user_tz = get_user_timezone(user_id, token)
