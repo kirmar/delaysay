@@ -77,8 +77,7 @@ TBD: Other configuration
 
 Configure the `/delay` Slack command:
 
-- Click **"Add Features and Functionality"**
-- Click **"Slash Commands"**
+- Under **"Features"**, click **"Slash Commands"**
 - Click **[Create New Command]**
 - Fill out the form:
     Command: **`/delay`**
@@ -108,7 +107,7 @@ authorize the app to post messages with their identity.
 
 ## Activate Public Distribution
 
-Under **"Features"**:
+Under **"Settings"**:
 
 - Click **"Manage Distribution"**
 - Click **"Activate Public Distribution"**
