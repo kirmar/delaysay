@@ -306,7 +306,7 @@ def parse_and_schedule(params):
     
     post_and_print_info_and_confirm_success(
         response_url,
-        f'At {time} on {date}, I will post "{message}" on your behalf.'
+        f'At {time} on {date}, I will post on your behalf: "{message}"'
     )
 
 
