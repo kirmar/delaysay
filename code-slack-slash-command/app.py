@@ -47,7 +47,11 @@ def get_user_timezone(user_id, token):
     if r.status_code != 200:
         print(r.status_code, r.reason)
         raise Exception("requests.post failed")
-    tz_offset = json.loads(r.content)['user']['tz_offset']
+    user_object = json.loads(r.content)
+    if not user_object['ok']:
+        raise Exception(
+            "get_user_timezone() failed: " + user_object['error'])
+    tz_offset = user_object['user']['tz_offset']
     user_tz = timezone(timedelta(seconds=tz_offset))
     return user_tz
 
@@ -83,7 +87,11 @@ def get_scheduled_messages(channel_id, token):
     if r.status_code != 200:
         print(r.status_code, r.reason)
         raise Exception("requests.post failed")
-    scheduled_messages = json.loads(r.content)['scheduled_messages']
+    messages_object = json.loads(r.content)
+    if not messages_object['ok']:
+        raise Exception(
+            "get_scheduled_messages() failed: " + messages_object['error'])
+    scheduled_messages = messages_object['scheduled_messages']
     scheduled_messages.sort(key=lambda message_info: message_info['post_at'])
     return scheduled_messages
 
