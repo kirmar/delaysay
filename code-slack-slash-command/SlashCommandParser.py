@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.7
-
 import re
 from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timedelta
