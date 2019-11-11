@@ -10,11 +10,16 @@ help: ## Show help text
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
 	@echo
 
+requirements:: ## Install Python requirements
+	for requirements in code-*/requirements.txt; do \
+	  python3.7 -m pip install -r $$requirements; \
+	done
+
 validate:: ## Validate the SAM template
 	sam validate
 
 build:: ## SAM build
-	sam build
+	sam build --use-container
 
 package:: ## SAM package
 	sam package \

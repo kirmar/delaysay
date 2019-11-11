@@ -17,6 +17,11 @@ Note: These are only rough directions that may need a lot of updates.
 
 - Python 3.7
 
+- Packages
+
+    for requirements in code-*/requirements.txt; do
+      python3.7 -m pip install -r $requirements
+    done
 
 ## Deploy AWS stack
 
