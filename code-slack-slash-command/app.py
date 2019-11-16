@@ -116,7 +116,6 @@ def list_scheduled_messages(params):
     if scheduled_messages:
         res = f"Here are the messages you have scheduled:"
         for i, message_info in enumerate(scheduled_messages):
-            print(message_info)
             timestamp = message_info['post_at']
             res += (
                f"\n    " + str(i + 1) + ") <!date^" + str(timestamp)

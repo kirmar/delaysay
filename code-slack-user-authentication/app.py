@@ -59,9 +59,9 @@ def lambda_handler(event, context):
         raise Exception("requests.post failed")
     content = json.loads(r.content)
     if not content['ok']:
-        print("Error: " + content['error'])
         raise Exception(
-            "OAuth access failed. If you're testing, please click the"
+            "Error: " + content['error']
+            + " OAuth access failed. If you're testing, please click the"
             ' "Add to Slack" link in the project doc.')
     token = content['access_token']
     user_id = content['user_id']
