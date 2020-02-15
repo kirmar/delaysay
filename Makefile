@@ -23,7 +23,7 @@ build:: ## SAM build
 
 package:: ## SAM package
 	sam package \
-	  --output-template $(PACKAGED) \
+	  --output-template-file $(PACKAGED) \
 	  --s3-bucket "$(DELAYSAY_DEPLOY_BUCKET)"
 
 deploy:: $(PACKAGED) ## Deploy stack $stack_name to $region
