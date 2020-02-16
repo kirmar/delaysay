@@ -31,14 +31,33 @@ def add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time):
 
 
 def build_response(res, err=None):
-    return {
-        'statusCode': "400" if err else "302",
-        'body': res,
-        'headers': {
-            'Content-Type': "application/json",
-            'Location': "https://delaysay.com/added/"
+    if err:
+        return {
+            'statusCode': "302",
+            'body': res,
+            'headers': {
+                'Content-Type': "application/json",
+                'Location': "https://delaysay.com/add-failed/"
+            }
         }
-    }
+    elif res == "canceled":
+        return {
+            'statusCode': "302",
+            'body': res,
+            'headers': {
+                'Content-Type': "application/json",
+                'Location': "https://delaysay.com/add-canceled/"
+            }
+        }
+    else:
+        return {
+            'statusCode': "302",
+            'body': res,
+            'headers': {
+                'Content-Type': "application/json",
+                'Location': "https://delaysay.com/add-success/"
+            }
+        }
 
 
 def lambda_handler(event, context):
@@ -60,8 +79,8 @@ def lambda_handler(event, context):
     content = json.loads(r.content)
     if not content['ok']:
         raise Exception(
-            "Error: " + content['error']
-            + " OAuth access failed. If you're testing, please click the"
+            content['error']
+            + ". OAuth access failed. If you're testing, please click the"
             ' "Add to Slack" link in the project doc.')
     token = content['access_token']
     user_id = content['user_id']
@@ -69,14 +88,16 @@ def lambda_handler(event, context):
     enterprise_id = content.get('enterprise_id', None)
     create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time)
-    return build_response("Hello, world!")
+    return build_response("success")
 
 
 def lambda_handler_with_catch_all(event, context):
     try:
+        if (event['queryStringParameters'].get("error") == "access_denied"):
+            return build_response("canceled")
         return lambda_handler(event, context)
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the user's OAuth token.
         traceback.print_exc()
-        return build_response("There was an error.", err)
+        return build_response("error", err)

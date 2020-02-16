@@ -180,7 +180,7 @@ def delete_scheduled_message(params):
             channel=channel_id,
             scheduled_message_id=ids[i]
         )
-        res = f"I successfully cancelled message {command_text_only_numbers}."
+        res = f"I successfully canceled message {command_text_only_numbers}."
     except slack.errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
