@@ -60,10 +60,10 @@ Resources:
           Properties:
             Path: /delaysay-slash-command
             Method: ANY
-  DelaySayUserAuthenticationFunction:
+  DelaySayUserAuthorizationFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: code-slack-user-authentication/
+      CodeUri: code-slack-user-authorization/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.7
       Policies:
@@ -73,10 +73,10 @@ Resources:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
       Events:
-        DelaySayUserAuthentication:
+        DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /delaysay-user-authentication
+            Path: /delaysay-user-authorization
             Method: ANY
 
 Outputs:
@@ -95,12 +95,12 @@ Outputs:
   DelaySayFunction:
     Description: "DelaySay Lambda Function ARN"
     Value: !GetAtt DelaySayFunction.Arn
-  DelaySayUserAuthenticationFunction:
-    Description: "DelaySay User Authentication Lambda Function ARN"
-    Value: !GetAtt DelaySayUserAuthenticationFunction.Arn
+  DelaySayUserAuthorizationFunction:
+    Description: "DelaySay User Authorization Lambda Function ARN"
+    Value: !GetAtt DelaySayUserAuthorizationFunction.Arn
   DelaySayFunctionIamRole:
     Description: "Implicit IAM Role created for DelaySay function"
     Value: !GetAtt DelaySayFunctionRole.Arn
-  DelaySayUserAuthenticationFunctionIamRole:
+  DelaySayUserAuthorizationFunctionIamRole:
     Description: "Implicit IAM Role created for DelaySay user auth function"
-    Value: !GetAtt DelaySayUserAuthenticationFunctionRole.Arn
+    Value: !GetAtt DelaySayUserAuthorizationFunctionRole.Arn

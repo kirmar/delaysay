@@ -13,7 +13,7 @@ import re
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
-    UserAuthenticateError, CommandParseError, TimeParseError)
+    UserAuthorizeError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
 
@@ -96,7 +96,7 @@ def get_user_auth_token(user_id):
         try:
             token = response['Item']['token']
         except KeyError:
-            raise UserAuthenticateError("User did not authenticate")
+            raise UserAuthorizeError("User did not authorize")
         team_id = response['Item']['team_id']
         team_name = response['Item'].get('team_name')
         enterprise_id = response['Item'].get('enterprise_id')
@@ -177,10 +177,10 @@ def list_scheduled_messages(params):
     
     try:
         token = get_user_auth_token(user_id)
-    except UserAuthenticateError:
+    except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authenticated DelaySay yet."
+            "You haven't authorized DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
@@ -226,10 +226,10 @@ def delete_scheduled_message(params):
     
     try:
         token = get_user_auth_token(user_id)
-    except UserAuthenticateError:
+    except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authenticated DelaySay yet."
+            "You haven't authorized DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
@@ -313,10 +313,10 @@ def parse_and_schedule(params):
     
     try:
         token = get_user_auth_token(user_id)
-    except UserAuthenticateError:
+    except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authenticated DelaySay yet."
+            "You haven't authorized DelaySay yet."
             "\nPlease grant DelaySay permission to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return

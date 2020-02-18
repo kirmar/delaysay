@@ -1,4 +1,4 @@
-class UserAuthenticateError(Exception):
+class UserAuthorizeError(Exception):
     pass
 
 class CommandParseError(Exception):
