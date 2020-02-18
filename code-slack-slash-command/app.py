@@ -441,7 +441,7 @@ def lambda_handler_with_catch_all(event, context):
         traceback.print_exc()
         res = (
             "If the error persists, try contacting my developers at"
-            " team@delaysay.com.")
+            " team@delaysay.com")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             res = (
