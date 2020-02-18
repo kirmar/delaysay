@@ -32,7 +32,7 @@ def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, crea
     table.put_item(Item=item)
 
 
-def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace_team=False):
+def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time):
     assert team_id
     response = table.get_item(
         Key={
@@ -40,23 +40,7 @@ def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace
             'SK': "team"
         }
     )
-    if not replace_team and 'Item' in response:
-        # If the team has no team_name because it was added from the
-        # old DynamoDB table, update the team name.
-        if team_name and 'team_name' not in response['Item']:
-            table.update_item(
-                Key={
-                    'PK': "TEAM#" + team_id,
-                    'SK': "team"
-                },
-                UpdateExpression="SET team_name = :val",
-                ExpressionAttributeValues={
-                    ':val': team_name
-                }
-            )
-        
-        # Do not replace all the team information just because a new
-        # user authorized the app.
+    if 'Item' in response:
         return
     item = {
         'PK': "TEAM#" + team_id,

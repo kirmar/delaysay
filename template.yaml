@@ -15,13 +15,6 @@ Globals:
     MemorySize: 1792
 
 Resources:
-  UserTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: id
-        Type: String
-      TableName: User
   DelaySayTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -46,14 +39,11 @@ Resources:
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.7
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DelaySayTable
         - DynamoDBReadPolicy:
-            TableName: !Ref UserTable
+            TableName: !Ref DelaySayTable
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
-          AUTH_TABLE_NAME_OLD: !Ref UserTable
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -86,9 +76,6 @@ Outputs:
   DelaySayApi:
     Description: "API Gateway endpoint URL for Prod stage for DelaySay function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/delaysay/"
-  UserTable:
-    Description: "DelaySay DynamoDB Table ARN"
-    Value: !GetAtt UserTable.Arn
   DelaySayTable:
     Description: "DelaySay DynamoDB Table ARN"
     Value: !GetAtt DelaySayTable.Arn

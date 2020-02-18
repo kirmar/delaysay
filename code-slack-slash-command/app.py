@@ -19,63 +19,6 @@ from random import sample
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
-table_old = dynamodb.Table(os.environ['AUTH_TABLE_NAME_OLD'])
-
-
-def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time):
-    assert user_id and token
-    item = {
-        'PK': "USER#" + user_id,
-        'SK': "user",
-        'token': token,
-        'team_id': team_id,
-        'team_name': team_name,
-        'enterprise_id': enterprise_id,
-        'create_time': create_time
-    }
-    for key in list(item):
-        if not item[key]:
-            del item[key]
-    table.put_item(Item=item)
-
-
-def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace_team=False):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        }
-    )
-    if not replace_team and 'Item' in response:
-        # If the team has no team_name because it was added from the
-        # old DynamoDB table, update the team name.
-        if team_name and 'team_name' not in response['Item']:
-            table.update_item(
-                Key={
-                    'PK': "TEAM#" + team_id,
-                    'SK': "team"
-                },
-                UpdateExpression="SET team_name = :val",
-                ExpressionAttributeValues={
-                    ':val': team_name
-                }
-            )
-        
-        # Do not replace all the team information just because a new
-        # user authorized the app.
-        return
-    item = {
-        'PK': "TEAM#" + team_id,
-        'SK': "team",
-        'team_name': team_name,
-        'enterprise_id': enterprise_id,
-        'create_time': create_time
-    }
-    for key in list(item):
-        if not item[key]:
-            del item[key]
-    table.put_item(Item=item)
 
 
 def get_user_auth_token(user_id):
@@ -88,22 +31,7 @@ def get_user_auth_token(user_id):
     try:
         return response['Item']['token']
     except KeyError:
-        response = table_old.get_item(
-            Key={
-                'id': user_id
-            }
-        )
-        try:
-            token = response['Item']['token']
-        except KeyError:
-            raise UserAuthorizeError("User did not authorize")
-        team_id = response['Item']['team_id']
-        team_name = response['Item'].get('team_name')
-        enterprise_id = response['Item'].get('enterprise_id')
-        create_time = response['Item']['create_time']
-        add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time)
-        add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time)
-        return token
+        raise UserAuthorizeError("User did not authorize")
 
 
 def get_user_timezone(user_id, token):
