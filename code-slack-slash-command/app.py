@@ -174,8 +174,9 @@ def list_scheduled_messages(params):
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authorized DelaySay yet."
-            "\nPlease grant DelaySay permission to schedule your messages:"
+            "Sorry, I can't check your scheduled texts because you haven't"
+            " authorized DelaySay yet."
+            "\n*Please grant DelaySay permission* to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
@@ -223,8 +224,9 @@ def delete_scheduled_message(params):
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authorized DelaySay yet."
-            "\nPlease grant DelaySay permission to schedule your messages:"
+            "Sorry, your text cannot be canceled because you haven't"
+            " authorized DelaySay yet."
+            "\n*Please grant DelaySay permission* to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
@@ -310,8 +312,10 @@ def parse_and_schedule(params):
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "You haven't authorized DelaySay yet."
-            "\nPlease grant DelaySay permission to schedule your messages:"
+            "Sorry, your text cannot be sent because you haven't"
+            " authorized DelaySay yet."
+            "\n*Please grant DelaySay permission* to schedule your messages,"
+            " then try again:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
@@ -455,8 +459,7 @@ def lambda_handler_with_catch_all(event, context):
         # like the message parsed by SlashCommandParser.
         traceback.print_exc()
         res = (
-            "If the error persists, try contacting my developers at"
-            " team@delaysay.com")
+            "If the error persists, try contacting us at team@delaysay.com")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             res = (
