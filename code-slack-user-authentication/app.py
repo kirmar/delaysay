@@ -41,6 +41,22 @@ def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace
         }
     )
     if not replace_team and 'Item' in response:
+        # If the team has no team_name because it was added from the
+        # old DynamoDB table, update the team name.
+        if team_name and 'team_name' not in response['Item']:
+            table.update_item(
+                Key={
+                    'PK': "TEAM#" + team_id,
+                    'SK': "team"
+                },
+                UpdateExpression="SET team_name = :val",
+                ExpressionAttributeValues={
+                    ':val': team_name
+                }
+            )
+        
+        # Do not replace all the team information just because a new
+        # user authorized the app.
         return
     item = {
         'PK': "TEAM#" + team_id,
