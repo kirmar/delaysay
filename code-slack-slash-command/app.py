@@ -19,18 +19,75 @@ from random import sample
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+table_old = dynamodb.Table(os.environ['AUTH_TABLE_NAME_OLD'])
+
+
+def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time):
+    assert user_id and token
+    item = {
+        'PK': "USER#" + user_id,
+        'SK': "user",
+        'token': token,
+        'team_id': team_id,
+        'team_name': team_name,
+        'enterprise_id': enterprise_id,
+        'create_time': create_time
+    }
+    for key in list(item):
+        if not item[key]:
+            del item[key]
+    table.put_item(Item=item)
+
+
+def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace_team=False):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+        }
+    )
+    if not replace_team and 'Item' in response:
+        return
+    item = {
+        'PK': "TEAM#" + team_id,
+        'SK': "team",
+        'team_name': team_name,
+        'enterprise_id': enterprise_id,
+        'create_time': create_time
+    }
+    for key in list(item):
+        if not item[key]:
+            del item[key]
+    table.put_item(Item=item)
 
 
 def get_user_auth_token(user_id):
     response = table.get_item(
         Key={
-            'id': user_id
+            'PK': "USER#" + user_id,
+            'SK': "user"
         }
     )
     try:
         return response['Item']['token']
     except KeyError:
-        raise UserAuthenticateError("User did not authenticate")
+        response = table_old.get_item(
+            Key={
+                'id': user_id
+            }
+        )
+        try:
+            token = response['Item']['token']
+        except KeyError:
+            raise UserAuthenticateError("User did not authenticate")
+        team_id = response['Item']['team_id']
+        team_name = response['Item'].get('team_name')
+        enterprise_id = response['Item'].get('enterprise_id')
+        create_time = response['Item']['create_time']
+        add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time)
+        add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time)
+        return token
 
 
 def get_user_timezone(user_id, token):

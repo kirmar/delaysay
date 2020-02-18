@@ -15,18 +15,43 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 
-def add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time):
+def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time):
+    assert user_id and token
     item = {
-        'id': user_id,
+        'PK': "USER#" + user_id,
+        'SK': "user",
         'token': token,
         'team_id': team_id,
+        'team_name': team_name,
         'enterprise_id': enterprise_id,
         'create_time': create_time
     }
     for key in list(item):
         if not item[key]:
             del item[key]
-    assert item['id'] and item['token']
+    table.put_item(Item=item)
+
+
+def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time, replace_team=False):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+        }
+    )
+    if not replace_team and 'Item' in response:
+        return
+    item = {
+        'PK': "TEAM#" + team_id,
+        'SK': "team",
+        'team_name': team_name,
+        'enterprise_id': enterprise_id,
+        'create_time': create_time
+    }
+    for key in list(item):
+        if not item[key]:
+            del item[key]
     table.put_item(Item=item)
 
 
@@ -85,15 +110,18 @@ def lambda_handler(event, context):
     token = content['access_token']
     user_id = content['user_id']
     team_id = content['team_id']
+    team_name = content['team_name']
     enterprise_id = content.get('enterprise_id', None)
     create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    add_user_to_dynamodb(user_id, token, team_id, enterprise_id, create_time)
+    add_user_to_dynamodb(
+        user_id, token, team_id, team_name, enterprise_id, create_time)
+    add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time)
     return build_response("success")
 
 
 def lambda_handler_with_catch_all(event, context):
     try:
-        if (event['queryStringParameters'].get("error") == "access_denied"):
+        if (event['queryStringParameters'].get('error') == "access_denied"):
             return build_response("canceled")
         return lambda_handler(event, context)
     except Exception as err:
