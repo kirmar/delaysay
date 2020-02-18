@@ -20,6 +20,22 @@ from random import sample
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
+# Let the team try DelaySay without paying.
+# Start warning them this long after they authorize DelaySay.
+SILENT_TRIAL_PERIOD = timedelta(days=10)
+
+# Let the team try DelaySay, but warn them to pay.
+# Stop access to DelaySay this long after they authorize DelaySay.
+FREE_TRIAL_PERIOD = timedelta(days=14)
+
+# Let the team keep using DelaySay until their payment expires.
+# Start warning them this long before their last payment expires.
+PAYMENT_WARNING_PERIOD = timedelta(days=4)
+
+# Let the team keep using DelaySay, but warn them to renew payment.
+# Stop access to DelaySay this long after their last payment expires.
+PAYMENT_GRACE_PERIOD = timedelta(days=1)
+
 
 def get_user_auth_token(user_id):
     response = table.get_item(
@@ -32,6 +48,56 @@ def get_user_auth_token(user_id):
         return response['Item']['token']
     except KeyError:
         raise UserAuthorizeError("User did not authorize")
+
+
+def check_payment_status(team_id):
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+            }
+    )
+    payment_expiration = response['Item'].get('payment_expiration')
+    now = datetime.utcnow()
+    if not payment_expiration:
+        # The team has never paid.
+        create_time = response['Item']['create_time']
+        time_since_auth = (
+            now - datetime.strptime(create_time, "%Y-%m-%dT%H:%M:%SZ"))
+        if time_since_auth <= SILENT_TRIAL_PERIOD:
+            return "green"
+        elif time_since_auth <= FREE_TRIAL_PERIOD:
+            return "yellow trial"
+        elif time_since_auth > FREE_TRIAL_PERIOD:
+            return "red trial"
+        else:
+            raise Exception(
+                "check_payment_status() failed: " +
+                "\npayment_expiration: " + str(payment_expiration) +
+                "\ntime_since_auth: " + str(time_since_auth) +
+                "\nSILENT_TRIAL_PERIOD: " + str(SILENT_TRIAL_PERIOD) +
+                "\nFREE_TRIAL_PERIOD: " + str(FREE_TRIAL_PERIOD))
+    elif payment_expiration == "never":
+        # The team does not need to pay, because they are beta testers.
+        return "green"
+    else:
+        # The team's trial has ended, so check if payment is current.
+        time_till_expiration = (
+            datetime.strptime(payment_expiration, "%Y-%m-%dT%H:%M:%SZ") - now)
+        if time_till_expiration >= PAYMENT_WARNING_PERIOD:
+            return "green"
+        elif timedelta(0) < time_till_expiration <= PAYMENT_WARNING_PERIOD:
+            return "yellow"
+        elif abs(time_till_expiration) <= PAYMENT_GRACE_PERIOD:
+            return "yellow"
+        elif abs(time_till_expiration) > PAYMENT_GRACE_PERIOD:
+            return "red"
+        else:
+            raise Exception(
+                "check_payment_status() failed: " +
+                "\npayment_expiration: " + str(payment_expiration) + +
+                "\ntime_till_expiration: " + str(time_till_expiration) +
+                "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
 
 
 def get_user_timezone(user_id, token):
@@ -250,6 +316,20 @@ def parse_and_schedule(params):
         return
     
     user_tz = get_user_timezone(user_id, token)
+    payment_status = check_payment_status(team_id)
+    subscribe_url = "delaysay.com/subscribe/?team=" + team_id
+    if payment_status.startswith("red"):
+        text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"
+                " sent because your workspace's")
+        if payment_status == "red trial":
+            text += " free trial has ended."
+        elif payment_status == "red":
+            text += " subscription has expired."
+        text += ("\nTo continue using DelaySay, *please pay here:*"
+                 "\n" + subscribe_url +
+                 "\nIf you have any questions, reach us at team@delaysay.com")
+        post_and_print_info_and_confirm_success(response_url, text)
+        return
     
     request_unix_timestamp = params['request_timestamp']
     
@@ -304,10 +384,17 @@ def parse_and_schedule(params):
         else:
             raise
     
-    post_and_print_info_and_confirm_success(
-        response_url,
-        f'At {time} on {date}, I will post on your behalf: "{message}"'
-    )
+    text = f'At {time} on {date}, I will post on your behalf: "{message}"'
+    if payment_status.startswith("yellow"):
+        text += "\n\nWe hope you're enjoying DelaySay! Your workspace's"
+        if payment_status == "yellow trial":
+            text += " free trial is almost over."
+        elif payment_status == "yellow":
+            text += " subscription is expiring."
+        text += ("\nTo continue using DelaySay, *please pay here:*"
+                 "\n" + subscribe_url +
+                 "\nIf you have any questions, reach us at team@delaysay.com")
+    post_and_print_info_and_confirm_success(response_url, text)
 
 
 def respond_before_timeout(event, context):
