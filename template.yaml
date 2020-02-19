@@ -14,6 +14,11 @@ Globals:
     Timeout: 300
     MemorySize: 1792
 
+Parameters:
+  StripeCheckoutSigningSecretSsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
+
 Resources:
   DelaySayTable:
     Type: AWS::DynamoDB::Table
@@ -68,6 +73,27 @@ Resources:
           Properties:
             Path: /delaysay-user-authorization
             Method: ANY
+  DelaySayStripeCheckoutWebhookFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: code-slack-stripe-checkout-webhook/
+      Handler: app.lambda_handler_with_catch_all
+      Runtime: python3.7
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DelaySayTable
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeCheckoutSigningSecretSsmName
+      Environment:
+        Variables:
+          AUTH_TABLE_NAME: !Ref DelaySayTable
+          STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Ref StripeCheckoutSigningSecretSsmName
+      Events:
+        DelaySayStripeCheckout:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /delaysay-stripe-checkout-webhook
+            Method: ANY
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -85,6 +111,9 @@ Outputs:
   DelaySayUserAuthorizationFunction:
     Description: "DelaySay User Authorization Lambda Function ARN"
     Value: !GetAtt DelaySayUserAuthorizationFunction.Arn
+  DelaySayStripeCheckoutWebhookFunction:
+    Description: "DelaySay Stripe Checkout Lambda Function ARN"
+    Value: !GetAtt DelaySayStripeCheckoutWebhookFunction.Arn
   DelaySayFunctionIamRole:
     Description: "Implicit IAM Role created for DelaySay function"
     Value: !GetAtt DelaySayFunctionRole.Arn

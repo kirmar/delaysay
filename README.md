@@ -35,6 +35,7 @@ Set environment variables to match your preferences
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_REGION=us-east-1
+    export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=/delaysay/stripe/webhook-checkout-signing-secret
     
 Create the S3 bucket for SAM deployments
 
@@ -55,7 +56,9 @@ Deploy the SAM app
       --region "$DELAYSAY_REGION" \
       --stack-name "$DELAYSAY_STACK_NAME" \
       --template-file packaged.yaml \
-      --capabilities CAPABILITY_IAM
+      --capabilities CAPABILITY_IAM \
+      --parameter-overrides \
+        "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET"
 
 Get the endpoint URL
 TBD: Update the parameter name when it changes
@@ -118,6 +121,13 @@ Under **"Settings"**:
 - Click **"Activate Public Distribution"**
 
 Copy the **"Shareable URL"** and **"Embeddable Slack Button"** to your app's website.
+
+
+## Set up payment
+
+TBD
+
+Save the signing signature in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
 
 
 ## Cleanup
