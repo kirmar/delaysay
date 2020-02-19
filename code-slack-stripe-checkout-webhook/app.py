@@ -90,9 +90,9 @@ def verify_stripe_signature(stripe_signature, payload):
     if float(current_timestamp) - float(received_timestamp) > TIME_TOLERANCE_IN_SECONDS:
         raise TimeToleranceExceededError(
             "Tolerance for timestamp difference was exceeded"
-            "\ncurrent_timestamp: ", current_timestamp,
-            "\nreceived_timestamp: ", received_timestamp,
-            "\nTIME_TOLERANCE_IN_SECONDS: ", TIME_TOLERANCE_IN_SECONDS)
+            "\ncurrent_timestamp: " + str(current_timestamp) +
+            "\nreceived_timestamp: " + str(received_timestamp) +
+            "\nTIME_TOLERANCE_IN_SECONDS: " + str(TIME_TOLERANCE_IN_SECONDS))
 
 
 def confirm_team_exists(team_id):
