@@ -35,7 +35,7 @@ Set environment variables to match your preferences
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_REGION=us-east-1
-    export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=/delaysay/stripe/webhook-checkout-signing-secret
+    export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     
 Create the S3 bucket for SAM deployments
 
