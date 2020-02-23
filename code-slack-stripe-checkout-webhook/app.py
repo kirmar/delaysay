@@ -52,8 +52,8 @@ def find_timestamp_and_signature(stripe_signature):
             return received_timestamp, received_signature
     raise Exception(
         "Stripe signature is missing timestamp and/or signature"
-        "\nreceived_timestamp", received_timestamp,
-        "\nreceived_signature", received_signature)
+        "\nreceived_timestamp: " + received_timestamp +
+        "\nreceived_signature: " + received_signature)
 
 
 def compute_expected_signature(received_timestamp, payload):
