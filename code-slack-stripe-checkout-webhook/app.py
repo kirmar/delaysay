@@ -10,12 +10,11 @@ import os
 import hashlib
 import hmac
 import base64
-import ntplib
+import time
 from DelaySayStripeCheckoutExceptions import (
     TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
     TimeToleranceExceededError)
 from datetime import datetime, timedelta
-
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
@@ -68,16 +67,6 @@ def compute_expected_signature(received_timestamp, payload):
     return expected_signature
 
 
-def get_current_timestamp_from_ntp():
-    # https://pypi.org/project/ntplib/
-    # If you need to install ntplib: python3.7 -m pip install ntplib
-    # If you're not sure you're using the right attribute, try looking
-    # at help(response) and see if it's at all enlightening.
-    client = ntplib.NTPClient()
-    response = client.request('pool.ntp.org')
-    return response.tx_time
-
-
 def verify_stripe_signature(stripe_signature, payload):
     # https://stripe.com/docs/webhooks/signatures#verify-manually
     received_timestamp, received_signature = find_timestamp_and_signature(
@@ -86,7 +75,7 @@ def verify_stripe_signature(stripe_signature, payload):
         received_timestamp, payload)
     if received_signature != expected_signature:
         raise SignaturesDoNotMatchError("Stripe signatures do not match")
-    current_timestamp = get_current_timestamp_from_ntp()
+    current_timestamp = time.time()
     if float(current_timestamp) - float(received_timestamp) > TIME_TOLERANCE_IN_SECONDS:
         raise TimeToleranceExceededError(
             "Tolerance for timestamp difference was exceeded"
