@@ -133,7 +133,9 @@ def get_user_timezone(user_id, token):
     user_object = json.loads(r.content)
     if not user_object['ok']:
         raise Exception(
-            "get_user_timezone() failed: " + user_object['error'])
+            "get_user_timezone() failed: " + user_object['error'] +
+            "\nFor more information, see here:"
+            "\nhttps://api.slack.com/methods/users.info")
     tz_offset = user_object['user']['tz_offset']
     user_tz = timezone(timedelta(seconds=tz_offset))
     return user_tz

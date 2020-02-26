@@ -102,7 +102,7 @@ def build_response(res, err=None):
 def lambda_handler(event, context):
     code = event['queryStringParameters']['code']
     r = requests.post(
-        url="https://slack.com/api/oauth.access",
+        url="https://slack.com/api/oauth.v2.access",
         data={
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
@@ -120,12 +120,18 @@ def lambda_handler(event, context):
         raise Exception(
             content['error']
             + ". OAuth access failed. If you're testing, please click the"
-            ' "Add to Slack" link in the project doc.')
-    token = content['access_token']
-    user_id = content['user_id']
-    team_id = content['team_id']
-    team_name = content['team_name']
-    enterprise_id = content.get('enterprise_id', None)
+            ' "Add to Slack" link in the project doc to see if it works there.'
+            "\nAlso check here to find out what the error means:"
+            "\nhttps://api.slack.com/methods/oauth.v2.access")
+    token = content['authed_user']['access_token']
+    user_id = content['authed_user']['id']
+    team_id = content['team']['id']
+    team_name = content['team']['name']
+    enterprise = content['enterprise']
+    if enterprise:
+        enterprise_id = enterprise['id']
+    else:
+        enterprise_id = None
     create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     add_user_to_dynamodb(
         user_id, token, team_id, team_name, enterprise_id, create_time)
