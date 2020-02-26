@@ -8,11 +8,25 @@ import traceback
 import boto3
 import requests
 import os
+import aws_encryption_sdk
 from slack_app_info import CLIENT_ID, CLIENT_SECRET
 from datetime import datetime
 
+kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
+    os.environ['KMS_MASTER_KEY_ARN']
+])
+
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+
+
+def encrypt_oauth_token(token):
+    token_as_bytes = token.encode()
+    encrypted_token, encryptor_header = aws_encryption_sdk.encrypt(
+        source=token_as_bytes,
+        key_provider=kms_key_provider
+    )
+    return encrypted_token
 
 
 def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time):
@@ -20,7 +34,7 @@ def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, crea
     item = {
         'PK': "USER#" + user_id,
         'SK': "user",
-        'token': token,
+        'token': encrypt_oauth_token(token),
         'team_id': team_id,
         'team_name': team_name,
         'enterprise_id': enterprise_id,

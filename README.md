@@ -36,6 +36,8 @@ Set environment variables to match your preferences
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
+    export DELAYSAY_KMS_MASTER_KEY_ARN=PleaseSeeTheSectionOnCreatingTheCMK
+    export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
     
 Create the S3 bucket for SAM deployments
 
@@ -58,7 +60,8 @@ Deploy the SAM app
       --template-file packaged.yaml \
       --capabilities CAPABILITY_IAM \
       --parameter-overrides \
-        "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET"
+        "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
+        "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
 
 Get the endpoint URL
 TBD: Update the parameter name when it changes
@@ -128,6 +131,20 @@ Copy the **"Shareable URL"** and **"Embeddable Slack Button"** to your app's web
 TBD
 
 Save the signing signature in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
+
+
+## Create customer master key (CMK)
+
+In your KMS console, create a new key.
+- For the key type, select **"Symetric"**
+- For the key material origin, select **"KMS"**
+- For the alias, type in the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS
+- For the key administrators, select **"admin"**
+- Allow key administrators to delete this key.
+- For "IAM users and roles that can use the CMK in cryptographic operations," select the roles from DelaySayFunction and DelaySayUserAuthorizationFunction
+- Finish.
+
+Click the alias and copy the ARN to $DELAYSAY_KMS_MASTER_KEY_ARN.
 
 
 ## Cleanup

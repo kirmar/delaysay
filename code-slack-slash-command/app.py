@@ -10,12 +10,17 @@ import requests
 import slack
 import os
 import re
+import aws_encryption_sdk
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     UserAuthorizeError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
+
+kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
+    os.environ['KMS_MASTER_KEY_ARN']
+])
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
@@ -37,6 +42,15 @@ PAYMENT_WARNING_PERIOD = timedelta(days=4)
 PAYMENT_GRACE_PERIOD = timedelta(days=1)
 
 
+def decrypt_oauth_token(encrypted_token):
+    token_as_bytes, decryptor_header = aws_encryption_sdk.decrypt(
+        source=encrypted_token,
+        key_provider=kms_key_provider
+    )
+    token = token_as_bytes.decode()
+    return token
+
+
 def get_user_auth_token(user_id):
     response = table.get_item(
         Key={
@@ -45,9 +59,11 @@ def get_user_auth_token(user_id):
         }
     )
     try:
-        return response['Item']['token']
+        encrypted_token_as_boto3_binary = response['Item']['token']
     except KeyError:
         raise UserAuthorizeError("User did not authorize")
+    encrypted_token_as_bytes = encrypted_token_as_boto3_binary.value
+    return decrypt_oauth_token(encrypted_token_as_bytes)
 
 
 def check_payment_status(team_id):

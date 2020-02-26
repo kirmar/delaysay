@@ -18,6 +18,9 @@ Parameters:
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
+  KmsMasterKeyArn:
+    Type: String
+    Description: "KMS key ARN for encrypting Slack users' OAuth tokens"
 
 Resources:
   DelaySayTable:
@@ -49,6 +52,7 @@ Resources:
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
+          KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -67,6 +71,7 @@ Resources:
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
+          KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
       Events:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
