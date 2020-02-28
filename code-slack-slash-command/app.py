@@ -9,11 +9,15 @@ import boto3
 import requests
 import slack
 import os
+import hashlib
+import hmac
+import time
 import re
 import aws_encryption_sdk
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
+    SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
     UserAuthorizeError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
@@ -24,6 +28,23 @@ kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+
+ssm = boto3.client('ssm')
+parameter = ssm.get_parameter(
+    # A slash is needed because the Stripe signing secret parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['SLACK_SIGNING_SECRET_SSM_NAME'],
+    WithDecryption=True
+)
+SLACK_SIGNING_SECRET = parameter['Parameter']['Value']
+
+# When verifying the Slack signing secret:
+# If the timestamp is this old, reject the request.
+TIME_TOLERANCE_IN_SECONDS = 5 * 60
+
 
 # Let the team try DelaySay without paying.
 # Start warning them this long after they authorize DelaySay.
@@ -40,6 +61,33 @@ PAYMENT_WARNING_PERIOD = timedelta(days=4)
 # Let the team keep using DelaySay, but warn them to renew payment.
 # Stop access to DelaySay this long after their last payment expires.
 PAYMENT_GRACE_PERIOD = timedelta(days=1)
+
+
+def compute_expected_signature(basestring):
+    hash = hmac.new(
+        key=SLACK_SIGNING_SECRET.encode(),
+        msg=basestring.encode(),
+        digestmod=hashlib.sha256)
+    expected_signature = "v0=" + hash.hexdigest()
+    return expected_signature
+
+
+def verify_slack_signature(request_timestamp, received_signature, request_body):
+    # https://api.slack.com/docs/verifying-requests-from-slack
+    basestring = "v0:" + request_timestamp + ":" + str(request_body)
+    expected_signature = compute_expected_signature(basestring)
+    if received_signature != expected_signature:
+        # Instead of "received_signature == expected_signature", Slack's
+        # docs say "hmac.compare(received_signature, expected_signature)".
+        # Which is better?
+        raise SlackSignaturesDoNotMatchError("Slack signatures do not match")
+    current_timestamp = time.time()
+    if float(current_timestamp) - float(request_timestamp) > TIME_TOLERANCE_IN_SECONDS:
+        raise SlackSignatureTimeToleranceExceededError(
+            "Tolerance for timestamp difference was exceeded"
+            "\ncurrent_timestamp: " + str(current_timestamp) +
+            "\nrequest_timestamp: " + str(request_timestamp) +
+            "\nTIME_TOLERANCE_IN_SECONDS: " + str(TIME_TOLERANCE_IN_SECONDS))
 
 
 def decrypt_oauth_token(encrypted_token):
@@ -466,12 +514,26 @@ def lambda_handler(event, context):
         return delete_scheduled_message(event)
     else:
         print("~~~   FIRST RESPONDER BEFORE TIMEOUT   ~~~")
+        verify_slack_signature(
+            request_timestamp=event['headers']['X-Slack-Request-Timestamp'],
+            received_signature=event['headers']['X-Slack-Signature'],
+            request_body=event['body'])
         return respond_before_timeout(event, context)
 
 
 def lambda_handler_with_catch_all(event, context):
     try:
         return lambda_handler(event, context)
+    except SlackSignaturesDoNotMatchError:
+        traceback.print_exc()
+        return build_response(
+            "Hi, there! I can't respond to your request because it has an"
+            " invalid Slack signature. It's a security risk.")
+    except SlackSignatureTimeToleranceExceededError:
+        traceback.print_exc()
+        return build_response(
+            "Hi, there! I can't respond to your request because it was sent"
+            " long ago. It's a security risk.")
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.

@@ -1,3 +1,9 @@
+class SlackSignaturesDoNotMatchError(Exception):
+    pass
+
+class SlackSignatureTimeToleranceExceededError(Exception):
+    pass
+
 class UserAuthorizeError(Exception):
     pass
 
