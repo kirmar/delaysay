@@ -9,7 +9,6 @@ import boto3
 import requests
 import os
 import aws_encryption_sdk
-from slack_app_info import CLIENT_ID, CLIENT_SECRET
 from datetime import datetime
 
 kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
@@ -18,6 +17,29 @@ kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+
+ssm = boto3.client('ssm')
+parameter = ssm.get_parameter(
+    # A slash is needed because the Slack client ID parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['SLACK_CLIENT_ID_SSM_NAME'],
+    WithDecryption=True
+)
+CLIENT_ID = parameter['Parameter']['Value']
+
+parameter = ssm.get_parameter(
+    # A slash is needed because the Slack client secret parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['SLACK_CLIENT_SECRET_SSM_NAME'],
+    WithDecryption=True
+)
+CLIENT_SECRET = parameter['Parameter']['Value']
 
 
 def encrypt_oauth_token(token):
@@ -104,13 +126,12 @@ def lambda_handler(event, context):
     r = requests.post(
         url="https://slack.com/api/oauth.v2.access",
         data={
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
             'code': code
         },
         headers={
             'Content-Type': "application/x-www-form-urlencoded"
-        }
+        },
+        auth=(CLIENT_ID, CLIENT_SECRET)
     )
     if r.status_code != 200:
         print(r.status_code, r.reason)

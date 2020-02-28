@@ -37,6 +37,8 @@ Set environment variables to match your preferences
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
+    export DELAYSAY_SLACK_CLIENT_ID=delaysay/slack/client-id
+    export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
     export DELAYSAY_KMS_MASTER_KEY_ARN=PleaseSeeTheSectionOnCreatingTheCMK
     export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
     
@@ -63,6 +65,8 @@ Deploy the SAM app
       --parameter-overrides \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "SlackSigningSecretSsmName=$DELAYSAY_SLACK_SIGNING_SECRET" \
+        "SlackClientIdSsmName=$DELAYSAY_SLACK_CLIENT_ID" \
+        "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
         "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
 
 Get the endpoint URL
@@ -107,9 +111,7 @@ Configure the redirect URL:
 - Paste the URL of your user authentication Lambda's API Gateway endpoint??
 - Click **[Save URLs]**
 
-Create a file code-slack-user-authorization/slack_app_info.py with two variables, "CLIENT_ID" AND "CLIENT_SECRET". Paste the values from **"App Credentials"** under **"Basic Information"** in your Slack app.
-
-Save the Slack signing secret in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
+Navigate to **"App Credentials"** under **"Basic Information"** in your Slack app. Save the Slack signing secret, client id, and client secret in the SSM Parameter Store. Their parameter names should be the values of $DELAYSAY_SLACK_SIGNING_SECRET, $DELAYSAY_SLACK_CLIENT_ID, and $DELAYSAY_SLACK_CLIENT_SECRET.
 
 
 ## Install Slack App in workspace

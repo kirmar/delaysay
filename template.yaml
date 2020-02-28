@@ -21,6 +21,12 @@ Parameters:
   SlackSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Slack signing secret"
+  SlackClientIdSsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Slack client ID"
+  SlackClientSecretSsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Slack client secret"
   KmsMasterKeyArn:
     Type: String
     Description: "KMS key ARN for encrypting Slack users' OAuth tokens"
@@ -74,10 +80,16 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref SlackClientIdSsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref SlackClientSecretSsmName
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
+          SLACK_CLIENT_ID_SSM_NAME: !Ref SlackClientIdSsmName
+          SLACK_CLIENT_SECRET_SSM_NAME: !Ref SlackClientSecretSsmName
       Events:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
