@@ -9,7 +9,6 @@ import boto3
 import os
 import hashlib
 import hmac
-import base64
 import time
 from DelaySayStripeCheckoutExceptions import (
     TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
@@ -57,7 +56,6 @@ def find_timestamp_and_signature(stripe_signature):
 
 
 def compute_expected_signature(received_timestamp, payload):
-    # Does this help? https://stackoverflow.com/a/1306575
     signed_payload = received_timestamp + "." + payload
     hash = hmac.new(
         key=ENDPOINT_SECRET.encode(),
