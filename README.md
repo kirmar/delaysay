@@ -108,7 +108,7 @@ Configure the redirect URL:
 
 - Click **"OAuth & Permissions"**
 - Under **"Redirect URLs"**, click **[Add New Redirect URL]**
-- Paste the URL of your user authentication Lambda's API Gateway endpoint??
+- Paste the URL of your user authentication Lambda's API Gateway endpoint. Check template.yaml if you're not sure of the path.
 - Click **[Save URLs]**
 
 Navigate to **"App Credentials"** under **"Basic Information"** in your Slack app. Save the Slack signing secret, client id, and client secret in the SSM Parameter Store. Their parameter names should be the values of $DELAYSAY_SLACK_SIGNING_SECRET, $DELAYSAY_SLACK_CLIENT_ID, and $DELAYSAY_SLACK_CLIENT_SECRET.
