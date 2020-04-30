@@ -2,3 +2,4 @@ requests
 dateparser
 slackclient
 aws_encryption_sdk
+stripe

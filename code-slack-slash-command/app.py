@@ -14,6 +14,7 @@ import hmac
 import time
 import re
 import aws_encryption_sdk
+import stripe
 from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
@@ -30,6 +31,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 ssm = boto3.client('ssm')
+
 parameter = ssm.get_parameter(
     # A slash is needed because the Slack signing secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
@@ -40,6 +42,18 @@ parameter = ssm.get_parameter(
     WithDecryption=True
 )
 SLACK_SIGNING_SECRET = parameter['Parameter']['Value']
+
+api_key_parameter = ssm.get_parameter(
+    # A slash is needed because the Stripe signing secret parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+    # Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
+    WithDecryption=True
+)
+stripe.api_key = api_key_parameter['Parameter']['Value']
 
 # When verifying the Slack signing secret:
 # If the timestamp is this old, reject the request.
@@ -53,10 +67,6 @@ SILENT_TRIAL_PERIOD = timedelta(days=10)
 # Let the team try DelaySay, but warn them to pay.
 # Stop access to DelaySay this long after they authorize DelaySay.
 FREE_TRIAL_PERIOD = timedelta(days=14)
-
-# Let the team keep using DelaySay until their payment expires.
-# Start warning them this long before their last payment expires.
-PAYMENT_WARNING_PERIOD = timedelta(days=1)
 
 # Let the team keep using DelaySay, but warn them to renew payment.
 # Stop access to DelaySay this long after their last payment expires.
@@ -117,17 +127,56 @@ def get_user_auth_token(user_id):
     return decrypt_oauth_token(encrypted_token_as_bytes)
 
 
-def check_payment_status(team_id):
+def get_payment_expiration_from_dynamodb(team_id):
+    assert team_id
     response = table.get_item(
         Key={
             'PK': "TEAM#" + team_id,
             'SK': "team"
             }
     )
-    payment_expiration = response['Item'].get('payment_expiration')
+    expiration_unix_timestamp = response['Item'].get('payment_expiration')
+    try:
+        expiration = datetime.strptime(expiration_unix_timestamp, DATETIME_FORMAT)
+        return expiration
+    except:
+        return None
+
+
+def get_subscription_id_from_dynamodb(team_id):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+        }
+    )
+    subscription_id = response['Item'].get('stripe_subscription_id')
+    return subscription_id
+
+
+def get_payment_expiration_from_stripe(subscription_id):
+    assert subscription_id
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+    except:
+        raise StripeSubscriptionDoesNotExistError(
+            "Stripe subscription does not exist: " + str(subscription_id))
+    expiration_unix_timestamp = subscription['current_period_end']
+    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    return expiration
+
+
+def check_payment_status(payment_expiration, team_id):
     now = datetime.utcnow()
     if not payment_expiration:
         # The team has never paid.
+        response = table.get_item(
+            Key={
+                'PK': "TEAM#" + team_id,
+                'SK': "team"
+                }
+        )
         create_time = response['Item']['create_time']
         time_since_auth = (
             now - datetime.strptime(create_time, DATETIME_FORMAT))
@@ -149,12 +198,9 @@ def check_payment_status(team_id):
         return "green"
     else:
         # The team's trial has ended, so check if payment is current.
-        time_till_expiration = (
-            datetime.strptime(payment_expiration, DATETIME_FORMAT) - now)
-        if time_till_expiration >= PAYMENT_WARNING_PERIOD:
+        time_till_expiration = payment_expiration - now
+        if time_till_expiration > timedelta(0):
             return "green"
-        elif timedelta(0) < time_till_expiration <= PAYMENT_WARNING_PERIOD:
-            return "yellow"
         elif abs(time_till_expiration) <= PAYMENT_GRACE_PERIOD:
             return "yellow"
         elif abs(time_till_expiration) > PAYMENT_GRACE_PERIOD:
@@ -165,6 +211,22 @@ def check_payment_status(team_id):
                 "\npayment_expiration: " + str(payment_expiration) + +
                 "\ntime_till_expiration: " + str(time_till_expiration) +
                 "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
+
+
+def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
+    assert team_id and stripe_subscription_id and payment_expiration
+    table.update_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+        },
+        UpdateExpression="SET payment_expiration = :val,"
+                         " stripe_subscription_id = :val2",
+        ExpressionAttributeValues={
+            ":val": payment_expiration,
+            ":val2": stripe_subscription_id
+        }
+    )
 
 
 def get_user_timezone(user_id, token):
@@ -389,7 +451,20 @@ def parse_and_schedule(params):
         return
     
     user_tz = get_user_timezone(user_id, token)
-    payment_status = check_payment_status(team_id)
+    
+    expiration = get_payment_expiration_from_dynamodb(team_id)
+    subscription_id = get_subscription_id_from_dynamodb(team_id)
+    if subscription_id and expiration != "never":
+        expiration_from_stripe = get_payment_expiration_from_stripe(subscription_id)
+        if not expiration or expiration_from_stripe > expiration:
+            expiration = expiration_from_stripe
+            expiration_string = expiration.strftime(DATETIME_FORMAT)
+            update_payment_info(team_id, subscription_id, expiration_string)
+    else:
+        if not expiration:
+            # TODO: put the trial status out in a separate function
+            pass
+    payment_status = check_payment_status(expiration, team_id)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     if payment_status.startswith("red"):
         text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"

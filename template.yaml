@@ -63,15 +63,21 @@ Resources:
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.7
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
         - SSMParameterReadPolicy:
             ParameterName: !Ref SlackSigningSecretSsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeApiKeySsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeTestingApiKeySsmName
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
           SLACK_SIGNING_SECRET_SSM_NAME: !Ref SlackSigningSecretSsmName
+          STRIPE_API_KEY_SSM_NAME: !Ref StripeApiKeySsmName
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Ref StripeTestingApiKeySsmName
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

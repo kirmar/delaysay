@@ -1,3 +1,6 @@
+class StripeSubscriptionDoesNotExistError(Exception):
+    pass
+
 class SlackSignaturesDoNotMatchError(Exception):
     pass
 
