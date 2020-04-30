@@ -2,7 +2,7 @@
 
 A Slack app that schedules messages
 
-Note: These are only rough directions that may need a lot of updates.
+Note: The directions below explain how to create the Slack app using the code in this repo. Please keep in mind they are only rough directions that may be incomplete or out of date.
 
 
 ## Prerequisites
@@ -54,7 +54,7 @@ Build and package SAM app
     sam package \
       --output-template packaged.yaml \
       --s3-bucket "$DELAYSAY_DEPLOY_BUCKET"
-    
+
 Deploy the SAM app
 
     sam deploy \
@@ -134,15 +134,35 @@ Copy the **"Shareable URL"** and **"Embeddable Slack Button"** to your app's web
 
 ## Set up payment
 
-TBD
+Create a Stripe account at https://dashboard.stripe.com/register
 
-Save the signing signature in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
+Verify your email and activate your account.
+
+Connect Stripe to Lambda:
+
+- Under **"Developers"**, click **"Webhooks"**
+- Click **"Add endpoint"**
+- Paste the URL of your Stripe checkout Lambda's API Gateway endpoint. Check template.yaml if you're not sure of the path.
+- Also add a hooks.slack.com endpoint??
+
+Save the Stripe signing signature:
+
+- (I'm actually not sure where the signing signature came from.)
+- ??Under **"Developers"**, click **"API keys"**??
+- ??Click **"Reveal live key token"**??
+- Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
+
+If you want to add team members:
+
+- Click **"Settings"**
+- Under **"Team and Security"**, click **"Team members"**
+- Click **"New user"** and input the team member's information
 
 
 ## Create customer master key (CMK)
 
 In your KMS console, create a new key.
-- For the key type, select **"Symetric"**
+- For the key type, select **"Symmetric"**
 - For the key material origin, select **"KMS"**
 - For the alias, type in the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS
 - For the key administrators, select **"admin"**
@@ -167,6 +187,12 @@ Delete the AWS stack
 Delete the Slack app
 
     TBD
+
+Delete the Stripe account (the business, not the user/profile)
+- Log into your Stripe account
+- Click **"Settings"**
+- Under **"Your Business"**, click **"Account information"
+- Scroll down and click **"Close account"**
 
 
 ## Credits
