@@ -127,8 +127,9 @@ def get_payment_expiration_from_stripe(subscription_id):
     except:
         raise StripeSubscriptionDoesNotExistError(
             "Stripe subscription does not exist: " + str(subscription_id))
-    payment_expiration = subscription['current_period_end']
-    return payment_expiration
+    expiration_unix_timestamp = subscription['current_period_end']
+    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    return expiration
 
 
 def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
@@ -174,9 +175,7 @@ def handle_checkout_completed(object):
     
     # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
-    expiration_unix_timestamp = get_payment_expiration_from_stripe(
-        subscription_id)
-    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    expiration = get_payment_expiration_from_stripe(subscription_id)
     expiration_string = expiration.strftime(DATETIME_FORMAT)
     
     expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
@@ -208,10 +207,7 @@ def handle_invoice_succeeded(object):
     
     # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
-    expiration_unix_timestamp = get_payment_expiration_from_stripe(
-        subscription_id)
-    # OR?? expiration_unix_timestamp = object['period_end']
-    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    expiration = get_payment_expiration_from_stripe(subscription_id)
     expiration_string = expiration.strftime(DATETIME_FORMAT)
     
     expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
