@@ -167,7 +167,10 @@ def build_response(res, err=None):
         }
 
 
-def handle_checkout_completed(object):
+def lambda_handler(event, context):
+    stripe_signature = event['headers']['Stripe-Signature']
+    verify_stripe_signature(stripe_signature, payload=event['body'])
+    object = json.loads(event['body'])['data']['object']
     team_id = object['client_reference_id']
     if team_id == "no_team_id_provided":
         raise NoTeamIdGivenError("No team ID provided")
@@ -196,50 +199,6 @@ def handle_checkout_completed(object):
     
     update_payment_info(team_id, subscription_id, expiration_string)
     return build_response("success")
-
-
-def handle_invoice_succeeded(object):
-    customer_id = object['customer']
-    
-    # Find the customer in the DynamoDB table
-    # Get their subscription ID
-    # Update their payment expiration
-    
-    # TODO: Is this the correct way to convert the Unix timestamp??
-    subscription_id = object['subscription']
-    expiration = get_payment_expiration_from_stripe(subscription_id)
-    expiration_string = expiration.strftime(DATETIME_FORMAT)
-    
-    expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
-        team_id)
-    if expiration_string_from_dynamodb == "never":
-        # The team does not need to pay, because they are beta testers.
-        # TODO: This program should really cancel the payment
-        # and tell the user they don't need to pay.
-        expiration_string = expiration_string_from_dynamodb
-    elif expiration_string_from_dynamodb:
-        expiration_from_dynamodb = datetime.strptime(
-            expiration_string_from_dynamodb, DATETIME_FORMAT)
-        if expiration < expiration_from_dynamodb:
-            # The team already has a subscription that lasts longer.
-            # TODO: This program should really cancel the payment
-            # and tell the user they don't need to pay.
-            expiration_string = expiration_string_from_dynamodb
-    
-    update_payment_info(team_id, subscription_id, expiration_string)
-    return build_response("success")
-
-
-def lambda_handler(event, context):
-    stripe_signature = event['headers']['Stripe-Signature']
-    verify_stripe_signature(stripe_signature, payload=event['body'])
-    object = json.loads(event['body'])['data']['object']
-    if object['object'] == "checkout.session":
-        # See https://stripe.com/docs/api/subscriptions/object
-        return handle_checkout_completed(object)
-    elif object['object'] == "invoice":
-        # See https://stripe.com/docs/api/invoices/object
-        return handle_invoice_succeeded(object)
 
 
 def lambda_handler_with_catch_all(event, context):
