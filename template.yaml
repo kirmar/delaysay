@@ -18,6 +18,12 @@ Parameters:
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
+  StripeApiKeySsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Stripe API key"
+  StripeTestingApiKeySsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Stripe API key (testing version)"
   SlackSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Slack signing secret"
@@ -108,10 +114,16 @@ Resources:
             TableName: !Ref DelaySayTable
         - SSMParameterReadPolicy:
             ParameterName: !Ref StripeCheckoutSigningSecretSsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeApiKeySsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeTestingApiKeySsmName
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Ref StripeCheckoutSigningSecretSsmName
+          STRIPE_API_KEY_SSM_NAME: !Ref StripeApiKeySsmName
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Ref StripeTestingApiKeySsmName
       Events:
         DelaySayStripeCheckout:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

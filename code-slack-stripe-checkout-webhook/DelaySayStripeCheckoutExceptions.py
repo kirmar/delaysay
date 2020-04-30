@@ -1,6 +1,9 @@
 class TeamNotInDynamoDBError(Exception):
     pass
 
+class StripeSubscriptionDoesNotExistError(Exception):
+    pass
+
 class NoTeamIdGivenError(Exception):
     pass
 

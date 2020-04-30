@@ -10,16 +10,18 @@ import os
 import hashlib
 import hmac
 import time
+import stripe
 from DelaySayStripeCheckoutExceptions import (
-    TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
-    TimeToleranceExceededError)
+    TeamNotInDynamoDBError, StripeSubscriptionDoesNotExistError,
+    NoTeamIdGivenError, SignaturesDoNotMatchError, TimeToleranceExceededError)
 from datetime import datetime, timedelta
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 ssm = boto3.client('ssm')
-parameter = ssm.get_parameter(
+
+signing_secret_parameter = ssm.get_parameter(
     # A slash is needed because the Stripe signing secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
     # otherwise the permission will have two slashes in a row and the
@@ -28,14 +30,26 @@ parameter = ssm.get_parameter(
     Name="/" + os.environ['STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME'],
     WithDecryption=True
 )
-ENDPOINT_SECRET = parameter['Parameter']['Value']
+ENDPOINT_SECRET = signing_secret_parameter['Parameter']['Value']
 
-# Let the team use DelaySay this long after they pay.
-SUBSCRIPTION_PERIOD = timedelta(days=30)
+api_key_parameter = ssm.get_parameter(
+    # A slash is needed because the Stripe signing secret parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+    # Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
+    WithDecryption=True
+)
+stripe.api_key = api_key_parameter['Parameter']['Value']
 
 # If the timestamp is this old, reject the payload.
 # (https://stripe.com/docs/webhooks/signatures#replay-attacks)
 TIME_TOLERANCE_IN_SECONDS = 5 * 60
+
+# This is the format used to log dates in the DynamoDB table.
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def find_timestamp_and_signature(stripe_signature):
@@ -94,16 +108,41 @@ def confirm_team_exists(team_id):
         raise TeamNotInDynamoDBError("Team did not authorize: " + str(team_id))
 
 
-def update_payment_expiration(team_id, payment_expiration):
-    assert team_id and payment_expiration
+def get_payment_expiration_from_dynamodb(team_id):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+            }
+    )
+    payment_expiration = response['Item'].get('payment_expiration')
+    return payment_expiration
+
+
+def get_payment_expiration_from_stripe(subscription_id):
+    assert subscription_id
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+    except:
+        raise StripeSubscriptionDoesNotExistError(
+            "Stripe subscription does not exist: " + str(subscription_id))
+    payment_expiration = subscription['current_period_end']
+    return payment_expiration
+
+
+def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
+    assert team_id and stripe_subscription_id and payment_expiration
     table.update_item(
         Key={
             'PK': "TEAM#" + team_id,
             'SK': "team"
         },
-        UpdateExpression="SET payment_expiration = :val",
+        UpdateExpression="SET payment_expiration = :val,"
+                         " stripe_subscription_id = :val2",
         ExpressionAttributeValues={
-            ':val': payment_expiration
+            ":val": payment_expiration,
+            ":val2": stripe_subscription_id
         }
     )
 
@@ -127,18 +166,84 @@ def build_response(res, err=None):
         }
 
 
-def lambda_handler(event, context):
-    stripe_signature = event['headers']['Stripe-Signature']
-    verify_stripe_signature(stripe_signature, payload=event['body'])
-    body = json.loads(event['body'])
-    team_id = body['data']['object']['client_reference_id']
+def handle_checkout_completed(object):
+    team_id = object['client_reference_id']
     if team_id == "no_team_id_provided":
         raise NoTeamIdGivenError("No team ID provided")
     confirm_team_exists(team_id)
-    now = datetime.utcnow()
-    payment_expiration = (now + SUBSCRIPTION_PERIOD).strftime("%Y-%m-%dT%H:%M:%SZ")
-    update_payment_expiration(team_id, payment_expiration)
+    
+    # TODO: Is this the correct way to convert the Unix timestamp??
+    subscription_id = object['subscription']
+    expiration_unix_timestamp = get_payment_expiration_from_stripe(
+        subscription_id)
+    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    expiration_string = expiration.strftime(DATETIME_FORMAT)
+    
+    expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
+        team_id)
+    if expiration_string_from_dynamodb == "never":
+        # The team does not need to pay, because they are beta testers.
+        # TODO: This program should really cancel the payment
+        # and tell the user they don't need to pay.
+        expiration_string = expiration_string_from_dynamodb
+    elif expiration_string_from_dynamodb:
+        expiration_from_dynamodb = datetime.strptime(
+            expiration_string_from_dynamodb, DATETIME_FORMAT)
+        if expiration < expiration_from_dynamodb:
+            # The team already has a subscription that lasts longer.
+            # TODO: This program should really cancel the payment
+            # and tell the user they don't need to pay.
+            expiration_string = expiration_string_from_dynamodb
+    
+    update_payment_info(team_id, subscription_id, expiration_string)
     return build_response("success")
+
+
+def handle_invoice_succeeded(object):
+    customer_id = object['customer']
+    
+    # Find the customer in the DynamoDB table
+    # Get their subscription ID
+    # Update their payment expiration
+    
+    # TODO: Is this the correct way to convert the Unix timestamp??
+    subscription_id = object['subscription']
+    expiration_unix_timestamp = get_payment_expiration_from_stripe(
+        subscription_id)
+    # OR?? expiration_unix_timestamp = object['period_end']
+    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
+    expiration_string = expiration.strftime(DATETIME_FORMAT)
+    
+    expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
+        team_id)
+    if expiration_string_from_dynamodb == "never":
+        # The team does not need to pay, because they are beta testers.
+        # TODO: This program should really cancel the payment
+        # and tell the user they don't need to pay.
+        expiration_string = expiration_string_from_dynamodb
+    elif expiration_string_from_dynamodb:
+        expiration_from_dynamodb = datetime.strptime(
+            expiration_string_from_dynamodb, DATETIME_FORMAT)
+        if expiration < expiration_from_dynamodb:
+            # The team already has a subscription that lasts longer.
+            # TODO: This program should really cancel the payment
+            # and tell the user they don't need to pay.
+            expiration_string = expiration_string_from_dynamodb
+    
+    update_payment_info(team_id, subscription_id, expiration_string)
+    return build_response("success")
+
+
+def lambda_handler(event, context):
+    stripe_signature = event['headers']['Stripe-Signature']
+    verify_stripe_signature(stripe_signature, payload=event['body'])
+    object = json.loads(event['body'])['data']['object']
+    if object['object'] == "checkout.session":
+        # See https://stripe.com/docs/api/subscriptions/object
+        return handle_checkout_completed(object)
+    elif object['object'] == "invoice":
+        # See https://stripe.com/docs/api/invoices/object
+        return handle_invoice_succeeded(object)
 
 
 def lambda_handler_with_catch_all(event, context):

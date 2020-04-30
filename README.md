@@ -36,6 +36,8 @@ Set environment variables to match your preferences
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
+    export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
+    export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
     export DELAYSAY_SLACK_CLIENT_ID=delaysay/slack/client-id
     export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
@@ -64,6 +66,8 @@ Deploy the SAM app
       --capabilities CAPABILITY_IAM \
       --parameter-overrides \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
+        "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
+        "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
         "SlackSigningSecretSsmName=$DELAYSAY_SLACK_SIGNING_SECRET" \
         "SlackClientIdSsmName=$DELAYSAY_SLACK_CLIENT_ID" \
         "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
@@ -143,14 +147,16 @@ Connect Stripe to Lambda:
 - Under **"Developers"**, click **"Webhooks"**
 - Click **"Add endpoint"**
 - Paste the URL of your Stripe checkout Lambda's API Gateway endpoint. Check template.yaml if you're not sure of the path.
+- For **"Events to send"**, select "checkout.session.completed" and "invoice.payment_succeeded"
+- Save the signing secret in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_API_KEY (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
+- Toggle on **"View test data"**, then **"Reveal live key token"**, and store the key the same way, this time in $DELAYSAY_STRIPE_TESTING_API_KEY (still starting with a slash).
 - Also add a hooks.slack.com endpoint??
 
 Save the Stripe signing signature:
 
-- (I'm actually not sure where the signing signature came from.)
-- ??Under **"Developers"**, click **"API keys"**??
-- ??Click **"Reveal live key token"**??
-- Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET.
+- Under **"Developers"**, click **"Webhooks"**
+- Click **"Reveal live key token"**
+- Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
 
 If you want to add team members:
 
