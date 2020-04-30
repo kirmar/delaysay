@@ -56,7 +56,7 @@ FREE_TRIAL_PERIOD = timedelta(days=14)
 
 # Let the team keep using DelaySay until their payment expires.
 # Start warning them this long before their last payment expires.
-PAYMENT_WARNING_PERIOD = timedelta(days=4)
+PAYMENT_WARNING_PERIOD = timedelta(days=1)
 
 # Let the team keep using DelaySay, but warn them to renew payment.
 # Stop access to DelaySay this long after their last payment expires.
