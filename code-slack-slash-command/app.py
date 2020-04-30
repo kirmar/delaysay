@@ -62,6 +62,9 @@ PAYMENT_WARNING_PERIOD = timedelta(days=4)
 # Stop access to DelaySay this long after their last payment expires.
 PAYMENT_GRACE_PERIOD = timedelta(days=1)
 
+# This is the format used to log dates in the DynamoDB table.
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 def compute_expected_signature(basestring):
     hash = hmac.new(
@@ -127,7 +130,7 @@ def check_payment_status(team_id):
         # The team has never paid.
         create_time = response['Item']['create_time']
         time_since_auth = (
-            now - datetime.strptime(create_time, "%Y-%m-%dT%H:%M:%SZ"))
+            now - datetime.strptime(create_time, DATETIME_FORMAT))
         if time_since_auth <= SILENT_TRIAL_PERIOD:
             return "green"
         elif time_since_auth <= FREE_TRIAL_PERIOD:
@@ -147,7 +150,7 @@ def check_payment_status(team_id):
     else:
         # The team's trial has ended, so check if payment is current.
         time_till_expiration = (
-            datetime.strptime(payment_expiration, "%Y-%m-%dT%H:%M:%SZ") - now)
+            datetime.strptime(payment_expiration, DATETIME_FORMAT) - now)
         if time_till_expiration >= PAYMENT_WARNING_PERIOD:
             return "green"
         elif timedelta(0) < time_till_expiration <= PAYMENT_WARNING_PERIOD:

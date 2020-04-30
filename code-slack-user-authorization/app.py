@@ -41,6 +41,9 @@ parameter = ssm.get_parameter(
 )
 CLIENT_SECRET = parameter['Parameter']['Value']
 
+# This is the format used to log dates in the DynamoDB table.
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 def encrypt_oauth_token(token):
     token_as_bytes = token.encode()
@@ -153,7 +156,7 @@ def lambda_handler(event, context):
         enterprise_id = enterprise['id']
     else:
         enterprise_id = None
-    create_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    create_time = datetime.utcnow().strftime(DATETIME_FORMAT)
     add_user_to_dynamodb(
         user_id, token, team_id, team_name, enterprise_id, create_time)
     add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time)
