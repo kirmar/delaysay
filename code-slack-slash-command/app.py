@@ -135,12 +135,12 @@ def get_payment_expiration_from_dynamodb(team_id):
             'SK': "team"
             }
     )
-    expiration_unix_timestamp = response['Item'].get('payment_expiration')
+    expiration_string = response['Item'].get('payment_expiration')
     try:
-        expiration = datetime.strptime(expiration_unix_timestamp, DATETIME_FORMAT)
+        expiration = datetime.strptime(expiration_string, DATETIME_FORMAT)
         return expiration
     except:
-        return None
+        return expiration_string
 
 
 def get_subscription_id_from_dynamodb(team_id):
