@@ -14,8 +14,8 @@ import hmac
 import time
 import re
 import aws_encryption_sdk
-import stripe
 from urllib.parse import parse_qs
+from StripeSubscription import StripeSubscription
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
@@ -43,17 +43,6 @@ slack_signing_secret_parameter = ssm.get_parameter(
 )
 SLACK_SIGNING_SECRET = slack_signing_secret_parameter['Parameter']['Value']
 
-stripe_api_key_parameter = ssm.get_parameter(
-    # A slash is needed because the Stripe signing secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
-    # Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
-    WithDecryption=True
-)
-stripe.api_key = stripe_api_key_parameter['Parameter']['Value']
 
 # When verifying the Slack signing secret:
 # If the timestamp is this old, reject the request.
@@ -166,27 +155,6 @@ def get_payment_plan_nickname_from_dynamodb(team_id):
     )
     payment_plan = response['Item']['payment_plan']
     return payment_plan
-
-
-def is_stripe_payment_current(subscription_id):
-    assert subscription_id
-    subscription = stripe.Subscription.retrieve(subscription_id)
-    return subscription['status'] == "active"
-
-
-def get_payment_expiration_from_stripe(subscription_id):
-    assert subscription_id
-    subscription = stripe.Subscription.retrieve(subscription_id)
-    expiration_unix_timestamp = subscription['current_period_end']
-    expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
-    return expiration
-
-
-def get_payment_plan_nickname_from_stripe(subscription_id):
-    assert subscription_id
-    subscription = stripe.Subscription.retrieve(subscription_id)
-    plan_name = subscription['plan']['nickname']
-    return plan_name
 
 
 def check_payment_status(payment_expiration, trial=False):
@@ -458,18 +426,16 @@ def parse_and_schedule(params):
     user_tz = get_user_timezone(user_id, token)
     
     expiration = get_payment_expiration_from_dynamodb(team_id)
-    subscription_id = get_subscription_id_from_dynamodb(team_id)
     plan_name = get_payment_plan_nickname_from_dynamodb(team_id)
     if plan_name == "trial":
         payment_status = check_payment_status(expiration, trial=True)
     else:
         payment_status = check_payment_status(expiration)
-        if (payment_status in ["yellow", "red"]
-            and is_stripe_payment_current(subscription_id)):
-            expiration_from_stripe = get_payment_expiration_from_stripe(
-                subscription_id)
-            plan_name_from_stripe = get_payment_plan_nickname_from_stripe(
-                subscription_id)
+        subscription_id = get_subscription_id_from_dynamodb(team_id)
+        subscription = StripeSubscription(subscription_id)
+        if (payment_status in ["yellow", "red"] and subscription.is_current()):
+            expiration_from_stripe = subscription.get_expiration()
+            plan_name_from_stripe = subscription.get_plan_nickname()
             if expiration_from_stripe > expiration:
                 # The Stripe subscription was paid recently and
                 # the expiration should be updated accordingly.
