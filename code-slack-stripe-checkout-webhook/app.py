@@ -39,10 +39,20 @@ stripe_api_key_parameter = ssm.get_parameter(
     # function won't work) and for accessing the SSM parameter here
     # (slash needed).
     Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
-    # Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
 stripe.api_key = stripe_api_key_parameter['Parameter']['Value']
+
+stripe_test_api_key_parameter = ssm.get_parameter(
+    # A slash is needed because the Stripe signing secret parameter
+    # in template.yaml is used for the IAM permission (slash forbidden,
+    # otherwise the permission will have two slashes in a row and the
+    # function won't work) and for accessing the SSM parameter here
+    # (slash needed).
+    Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+    WithDecryption=True
+)
+TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
 
 
 # If the timestamp is this old, reject the payload.
@@ -127,7 +137,11 @@ def get_payment_expiration_from_dynamodb(team_id):
 
 def get_payment_expiration_from_stripe(subscription_id):
     assert subscription_id
-    subscription = stripe.Subscription.retrieve(subscription_id)
+    try:
+        subscription = stripe.Subscription.retrieve(self.id)
+    except stripe.error.InvalidRequestError:
+        subscription = stripe.Subscription.retrieve(
+            self.id, api_key=TEST_MODE_API_KEY)
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
     return expiration
