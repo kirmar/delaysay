@@ -19,7 +19,8 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 ssm = boto3.client('ssm')
-parameter = ssm.get_parameter(
+
+slack_client_id_parameter = ssm.get_parameter(
     # A slash is needed because the Slack client ID parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
     # otherwise the permission will have two slashes in a row and the
@@ -28,9 +29,9 @@ parameter = ssm.get_parameter(
     Name="/" + os.environ['SLACK_CLIENT_ID_SSM_NAME'],
     WithDecryption=True
 )
-CLIENT_ID = parameter['Parameter']['Value']
+CLIENT_ID = slack_client_id_parameter['Parameter']['Value']
 
-parameter = ssm.get_parameter(
+slack_client_secret_parameter = ssm.get_parameter(
     # A slash is needed because the Slack client secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
     # otherwise the permission will have two slashes in a row and the
@@ -39,7 +40,7 @@ parameter = ssm.get_parameter(
     Name="/" + os.environ['SLACK_CLIENT_SECRET_SSM_NAME'],
     WithDecryption=True
 )
-CLIENT_SECRET = parameter['Parameter']['Value']
+CLIENT_SECRET = slack_client_secret_parameter['Parameter']['Value']
 
 # Let the team try DelaySay, but warn them to pay.
 # Stop access to DelaySay this long after they authorize DelaySay.

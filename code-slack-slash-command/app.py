@@ -32,7 +32,7 @@ table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 ssm = boto3.client('ssm')
 
-parameter = ssm.get_parameter(
+slack_signing_secret_parameter = ssm.get_parameter(
     # A slash is needed because the Slack signing secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
     # otherwise the permission will have two slashes in a row and the
@@ -41,9 +41,9 @@ parameter = ssm.get_parameter(
     Name="/" + os.environ['SLACK_SIGNING_SECRET_SSM_NAME'],
     WithDecryption=True
 )
-SLACK_SIGNING_SECRET = parameter['Parameter']['Value']
+SLACK_SIGNING_SECRET = slack_signing_secret_parameter['Parameter']['Value']
 
-api_key_parameter = ssm.get_parameter(
+stripe_api_key_parameter = ssm.get_parameter(
     # A slash is needed because the Stripe signing secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
     # otherwise the permission will have two slashes in a row and the
@@ -53,7 +53,7 @@ api_key_parameter = ssm.get_parameter(
     # Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
-stripe.api_key = api_key_parameter['Parameter']['Value']
+stripe.api_key = stripe_api_key_parameter['Parameter']['Value']
 
 # When verifying the Slack signing secret:
 # If the timestamp is this old, reject the request.
