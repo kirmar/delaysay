@@ -135,6 +135,18 @@ def get_payment_expiration_from_dynamodb(team_id):
         return expiration_string
 
 
+def get_payment_plan_nickname_from_dynamodb(team_id):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+            }
+    )
+    payment_plan = response['Item']['payment_plan']
+    return payment_plan
+
+
 def get_payment_expiration_from_stripe(subscription_id):
     assert subscription_id
     try:
@@ -199,6 +211,7 @@ def lambda_handler(event, context):
     # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
     expiration = get_payment_expiration_from_dynamodb(team_id)
+    old_plan_name = get_payment_plan_nickname_from_dynamodb(team_id)
     if expiration == "never":
         # The team does not need to pay, because they are beta testers.
         # TODO: This program should immediately cancel the payment
@@ -207,7 +220,7 @@ def lambda_handler(event, context):
     else:
         expiration_from_stripe = get_payment_expiration_from_stripe(
             subscription_id)
-        if subscription_id == "trial" or expiration_from_stripe > expiration:
+        if old_plan_name == "trial" or expiration_from_stripe > expiration:
             # TODO: If a team already has a longer subscription, this
             # program should immediately cancel the payment and tell them.
             expiration = expiration_from_stripe
