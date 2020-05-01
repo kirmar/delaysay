@@ -9,7 +9,7 @@ import boto3
 import requests
 import os
 import aws_encryption_sdk
-from datetime import datetime
+from datetime import datetime, timedelta
 
 kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
     os.environ['KMS_MASTER_KEY_ARN']
@@ -41,6 +41,10 @@ parameter = ssm.get_parameter(
 )
 CLIENT_SECRET = parameter['Parameter']['Value']
 
+# Let the team try DelaySay, but warn them to pay.
+# Stop access to DelaySay this long after they authorize DelaySay.
+FREE_TRIAL_PERIOD = timedelta(days=14)
+
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -54,7 +58,8 @@ def encrypt_oauth_token(token):
     return encrypted_token
 
 
-def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, create_time):
+def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id,
+                         create_time):
     assert user_id and token
     item = {
         'PK': "USER#" + user_id,
@@ -71,7 +76,8 @@ def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id, crea
     table.put_item(Item=item)
 
 
-def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time):
+def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time,
+                         payment_expiration):
     assert team_id
     response = table.get_item(
         Key={
@@ -86,7 +92,9 @@ def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time):
         'SK': "team",
         'team_name': team_name,
         'enterprise_id': enterprise_id,
-        'create_time': create_time
+        'create_time': create_time,
+        'payment_expiration': payment_expiration,
+        'stripe_subscription_id': "trial"
     }
     for key in list(item):
         if not item[key]:
@@ -156,10 +164,15 @@ def lambda_handler(event, context):
         enterprise_id = enterprise['id']
     else:
         enterprise_id = None
-    create_time = datetime.utcnow().strftime(DATETIME_FORMAT)
+    create_time_as_string = datetime.utcnow().strftime(DATETIME_FORMAT)
+    payment_expiration = create_time + FREE_TRIAL_PERIOD
+    payment_expiration_as_string = payment_expiration.strftime(DATETIME_FORMAT)
     add_user_to_dynamodb(
-        user_id, token, team_id, team_name, enterprise_id, create_time)
-    add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time)
+        user_id, token, team_id, team_name, enterprise_id,
+        create_time_as_string)
+    add_team_to_dynamodb(
+        team_id, team_name, enterprise_id, create_time_as_string,
+        payment_expiration_as_string)
     return build_response("success")
 
 

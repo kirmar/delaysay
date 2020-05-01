@@ -44,6 +44,7 @@ api_key_parameter = ssm.get_parameter(
 )
 stripe.api_key = api_key_parameter['Parameter']['Value']
 
+
 # If the timestamp is this old, reject the payload.
 # (https://stripe.com/docs/webhooks/signatures#replay-attacks)
 TIME_TOLERANCE_IN_SECONDS = 5 * 60
@@ -116,8 +117,12 @@ def get_payment_expiration_from_dynamodb(team_id):
             'SK': "team"
             }
     )
-    payment_expiration = response['Item'].get('payment_expiration')
-    return payment_expiration
+    expiration_string = response['Item']['payment_expiration']
+    try:
+        expiration = datetime.strptime(expiration_string, DATETIME_FORMAT)
+        return expiration
+    except:
+        return expiration_string
 
 
 def get_payment_expiration_from_stripe(subscription_id):
@@ -178,24 +183,20 @@ def lambda_handler(event, context):
     
     # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
-    expiration = get_payment_expiration_from_stripe(subscription_id)
-    expiration_string = expiration.strftime(DATETIME_FORMAT)
-    
-    expiration_string_from_dynamodb = get_payment_expiration_from_dynamodb(
-        team_id)
-    if expiration_string_from_dynamodb == "never":
+    expiration = get_payment_expiration_from_dynamodb(team_id)
+    if expiration == "never":
         # The team does not need to pay, because they are beta testers.
-        # TODO: This program should really cancel the payment
-        # and tell the user they don't need to pay.
-        expiration_string = expiration_string_from_dynamodb
-    elif expiration_string_from_dynamodb:
-        expiration_from_dynamodb = datetime.strptime(
-            expiration_string_from_dynamodb, DATETIME_FORMAT)
-        if expiration < expiration_from_dynamodb:
-            # The team already has a subscription that lasts longer.
-            # TODO: This program should really cancel the payment
-            # and tell the user they don't need to pay.
-            expiration_string = expiration_string_from_dynamodb
+        # TODO: This program should immediately cancel the payment
+        # and tell the user.
+        expiration_string = expiration
+    else:
+        expiration_from_stripe = get_payment_expiration_from_stripe(
+            subscription_id)
+        if subscription_id == "trial" or expiration_from_stripe > expiration:
+            # TODO: If a team already has a longer subscription, this
+            # program should immediately cancel the payment and tell them.
+            expiration = expiration_from_stripe
+        expiration_string = expiration.strftime(DATETIME_FORMAT)
     
     update_payment_info(team_id, subscription_id, expiration_string)
     return build_response("success")

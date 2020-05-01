@@ -61,15 +61,16 @@ TIME_TOLERANCE_IN_SECONDS = 5 * 60
 
 
 # Let the team try DelaySay without paying.
-# Start warning them this long after they authorize DelaySay.
-SILENT_TRIAL_PERIOD = timedelta(days=10)
+# Start warning them this long before the trial ends.
+TRIAL_WARNING_PERIOD = timedelta(days=2)
 
-# Let the team try DelaySay, but warn them to pay.
-# Stop access to DelaySay this long after they authorize DelaySay.
-FREE_TRIAL_PERIOD = timedelta(days=14)
+# Let the team keep using DelaySay, but warn them to pay soon.
+# Start warning them this long before the payment expires.
+# As of 2020-04-30, timedelta(days=0) means they won't be warned at all.
+SUBSCRIPTION_WARNING_PERIOD = timedelta(days=0)
 
-# Let the team keep using DelaySay, but warn them to renew payment.
-# Stop access to DelaySay this long after their last payment expires.
+# Let the team keep using DelaySay, but warn them to pay soon.
+# Stop access to DelaySay this long after their payment/trial expires.
 PAYMENT_GRACE_PERIOD = timedelta(days=1)
 
 # This is the format used to log dates in the DynamoDB table.
@@ -135,7 +136,7 @@ def get_payment_expiration_from_dynamodb(team_id):
             'SK': "team"
             }
     )
-    expiration_string = response['Item'].get('payment_expiration')
+    expiration_string = response['Item']['payment_expiration']
     try:
         expiration = datetime.strptime(expiration_string, DATETIME_FORMAT)
         return expiration
@@ -164,53 +165,35 @@ def get_payment_expiration_from_stripe(subscription_id):
             "Stripe subscription does not exist: " + str(subscription_id))
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
-    return expiration
-
-
-def check_payment_status(payment_expiration, team_id):
-    now = datetime.utcnow()
-    if not payment_expiration:
-        # The team has never paid.
-        response = table.get_item(
-            Key={
-                'PK': "TEAM#" + team_id,
-                'SK': "team"
-                }
-        )
-        create_time = response['Item']['create_time']
-        time_since_auth = (
-            now - datetime.strptime(create_time, DATETIME_FORMAT))
-        if time_since_auth <= SILENT_TRIAL_PERIOD:
-            return "green"
-        elif time_since_auth <= FREE_TRIAL_PERIOD:
-            return "yellow trial"
-        elif time_since_auth > FREE_TRIAL_PERIOD:
-            return "red trial"
-        else:
-            raise Exception(
-                "check_payment_status() failed: " +
-                "\npayment_expiration: " + str(payment_expiration) +
-                "\ntime_since_auth: " + str(time_since_auth) +
-                "\nSILENT_TRIAL_PERIOD: " + str(SILENT_TRIAL_PERIOD) +
-                "\nFREE_TRIAL_PERIOD: " + str(FREE_TRIAL_PERIOD))
-    elif payment_expiration == "never":
-        # The team does not need to pay, because they are beta testers.
-        return "green"
+    if subscription['status'] == "active":
+        return expiration
     else:
-        # The team's trial has ended, so check if payment is current.
-        time_till_expiration = payment_expiration - now
-        if time_till_expiration > timedelta(0):
-            return "green"
-        elif abs(time_till_expiration) <= PAYMENT_GRACE_PERIOD:
-            return "yellow"
-        elif abs(time_till_expiration) > PAYMENT_GRACE_PERIOD:
-            return "red"
-        else:
-            raise Exception(
-                "check_payment_status() failed: " +
-                "\npayment_expiration: " + str(payment_expiration) + +
-                "\ntime_till_expiration: " + str(time_till_expiration) +
-                "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
+        return None
+
+
+def check_payment_status(payment_expiration, trial=False):
+    # The team's trial has ended, so check if payment is current.
+    if payment_expiration == "never":
+        return "green"
+    now = datetime.utcnow()
+    time_till_expiration = payment_expiration - now
+    time_since_expiration = now - payment_expiration
+    if time_till_expiration > (TRIAL_WARNING_PERIOD if trial
+                               else SUBSCRIPTION_WARNING_PERIOD):
+        return "green"
+    elif time_since_expiration <= PAYMENT_GRACE_PERIOD:
+            return "yellow" + (" trial" if trial else "")
+    elif time_since_expiration > PAYMENT_GRACE_PERIOD:
+        return "red" + (" trial" if trial else "")
+    else:
+        raise Exception(
+            "check_payment_status() failed: " +
+            "\npayment_expiration: " + str(payment_expiration) +
+            "\ntime_till_expiration: " + str(time_till_expiration) +
+            "\ntrial: " + str(trial) +
+            "\nTRIAL_WARNING_PERIOD: " + str(TRIAL_WARNING_PERIOD) +
+            "\nSUBSCRIPTION_WARNING_PERIOD: " + str(SUBSCRIPTION_WARNING_PERIOD) +
+            "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
 
 
 def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
@@ -454,17 +437,20 @@ def parse_and_schedule(params):
     
     expiration = get_payment_expiration_from_dynamodb(team_id)
     subscription_id = get_subscription_id_from_dynamodb(team_id)
-    if subscription_id and expiration != "never":
-        expiration_from_stripe = get_payment_expiration_from_stripe(subscription_id)
-        if not expiration or expiration_from_stripe > expiration:
-            expiration = expiration_from_stripe
-            expiration_string = expiration.strftime(DATETIME_FORMAT)
-            update_payment_info(team_id, subscription_id, expiration_string)
+    if subscription_id == "trial":
+        payment_status = check_payment_status(expiration, trial=True)
     else:
-        if not expiration:
-            # TODO: put the trial status out in a separate function
-            pass
-    payment_status = check_payment_status(expiration, team_id)
+        payment_status = check_payment_status(expiration)
+        if payment_status in ["yellow", "red"]:
+            expiration_from_stripe = get_payment_expiration_from_stripe(
+                subscription_id)
+            if expiration_from_stripe > expiration:
+                # The Stripe subscription was paid recently and
+                # the expiration should be updated accordingly.
+                expiration = expiration_from_stripe
+                expiration_string = expiration.strftime(DATETIME_FORMAT)
+                update_payment_info(team_id, subscription_id, expiration_string)
+        payment_status = check_payment_status(expiration)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     if payment_status.startswith("red"):
         text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"
