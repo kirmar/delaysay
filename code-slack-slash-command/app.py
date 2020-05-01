@@ -156,15 +156,18 @@ def get_subscription_id_from_dynamodb(team_id):
     return subscription_id
 
 
+def is_stripe_payment_current(subscription_id):
+    assert subscription_id
+    subscription = stripe.Subscription.retrieve(subscription_id)
+    return subscription['status'] == "active"
+
+
 def get_payment_expiration_from_stripe(subscription_id):
     assert subscription_id
     subscription = stripe.Subscription.retrieve(subscription_id)
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
-    if subscription['status'] == "active":
-        return expiration
-    else:
-        return None
+    return expiration
 
 
 def check_payment_status(payment_expiration, trial=False):
@@ -437,7 +440,8 @@ def parse_and_schedule(params):
         payment_status = check_payment_status(expiration, trial=True)
     else:
         payment_status = check_payment_status(expiration)
-        if payment_status in ["yellow", "red"]:
+        if (payment_status in ["yellow", "red"]
+            and is_stripe_payment_current(subscription_id)):
             expiration_from_stripe = get_payment_expiration_from_stripe(
                 subscription_id)
             if expiration_from_stripe > expiration:
@@ -446,8 +450,9 @@ def parse_and_schedule(params):
                 expiration = expiration_from_stripe
                 expiration_string = expiration.strftime(DATETIME_FORMAT)
                 update_payment_info(team_id, subscription_id, expiration_string)
-        payment_status = check_payment_status(expiration)
+            payment_status = check_payment_status(expiration)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
+    
     if payment_status.startswith("red"):
         text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"
                 " sent because your workspace's")
