@@ -49,8 +49,8 @@ api_key_parameter = ssm.get_parameter(
     # otherwise the permission will have two slashes in a row and the
     # function won't work) and for accessing the SSM parameter here
     # (slash needed).
-    Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
-    # Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
+    Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
+    # Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
 stripe.api_key = api_key_parameter['Parameter']['Value']
