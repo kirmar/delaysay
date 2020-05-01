@@ -165,7 +165,8 @@ def lambda_handler(event, context):
         enterprise_id = enterprise['id']
     else:
         enterprise_id = None
-    create_time_as_string = datetime.utcnow().strftime(DATETIME_FORMAT)
+    create_time = datetime.utcnow()
+    create_time_as_string = create_time.strftime(DATETIME_FORMAT)
     payment_expiration = create_time + FREE_TRIAL_PERIOD
     payment_expiration_as_string = payment_expiration.strftime(DATETIME_FORMAT)
     add_user_to_dynamodb(
