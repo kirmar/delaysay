@@ -19,7 +19,8 @@ from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
-    UserAuthorizeError, CommandParseError, TimeParseError)
+    StripeSubscriptionDoesNotExistError, UserAuthorizeError, CommandParseError,
+    TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
 
