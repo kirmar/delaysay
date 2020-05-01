@@ -12,8 +12,8 @@ import hmac
 import time
 import stripe
 from DelaySayStripeCheckoutExceptions import (
-    TeamNotInDynamoDBError, StripeSubscriptionDoesNotExistError,
-    NoTeamIdGivenError, SignaturesDoNotMatchError, TimeToleranceExceededError)
+    TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
+    TimeToleranceExceededError)
 from datetime import datetime, timedelta
 
 dynamodb = boto3.resource("dynamodb")
@@ -127,11 +127,7 @@ def get_payment_expiration_from_dynamodb(team_id):
 
 def get_payment_expiration_from_stripe(subscription_id):
     assert subscription_id
-    try:
-        subscription = stripe.Subscription.retrieve(subscription_id)
-    except:
-        raise StripeSubscriptionDoesNotExistError(
-            "Stripe subscription does not exist: " + str(subscription_id))
+    subscription = stripe.Subscription.retrieve(subscription_id)
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
     return expiration

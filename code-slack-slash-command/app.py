@@ -19,8 +19,7 @@ from urllib.parse import parse_qs
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
-    StripeSubscriptionDoesNotExistError, UserAuthorizeError, CommandParseError,
-    TimeParseError)
+    UserAuthorizeError, CommandParseError, TimeParseError)
 from datetime import datetime, timezone, timedelta
 from random import sample
 
@@ -159,11 +158,7 @@ def get_subscription_id_from_dynamodb(team_id):
 
 def get_payment_expiration_from_stripe(subscription_id):
     assert subscription_id
-    try:
-        subscription = stripe.Subscription.retrieve(subscription_id)
-    except:
-        raise StripeSubscriptionDoesNotExistError(
-            "Stripe subscription does not exist: " + str(subscription_id))
+    subscription = stripe.Subscription.retrieve(subscription_id)
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
     if subscription['status'] == "active":
