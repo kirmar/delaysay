@@ -441,7 +441,9 @@ def parse_and_schedule(params):
                 # the expiration should be updated accordingly.
                 expiration = expiration_from_stripe
                 expiration_string = expiration.strftime(DATETIME_FORMAT)
-                update_payment_info(team_id, expiration_string, plan_name, subscription_id)
+                update_payment_info(
+                    team_id, expiration_string, plan_name_from_stripe,
+                    subscription_id)
             payment_status = check_payment_status(expiration)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     
