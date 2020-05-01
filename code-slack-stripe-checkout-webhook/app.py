@@ -133,18 +133,22 @@ def get_payment_expiration_from_stripe(subscription_id):
     return expiration
 
 
-def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
-    assert team_id and stripe_subscription_id and payment_expiration
+def update_payment_info(team_id, payment_expiration, payment_plan,
+                        stripe_subscription_id):
+    assert team_id and payment_expiration and payment_plan
+    assert stripe_subscription_id
     table.update_item(
         Key={
             'PK': "TEAM#" + team_id,
             'SK': "team"
         },
         UpdateExpression="SET payment_expiration = :val,"
-                         " stripe_subscription_id = :val2",
+                         " payment_plan = :val2,"
+                         " stripe_subscription_id = :val3",
         ExpressionAttributeValues={
             ":val": payment_expiration,
-            ":val2": stripe_subscription_id
+            ":val2": payment_plan,
+            ":val3": stripe_subscription_id
         }
     )
 
@@ -173,6 +177,7 @@ def lambda_handler(event, context):
     verify_stripe_signature(stripe_signature, payload=event['body'])
     object = json.loads(event['body'])['data']['object']
     team_id = object['client_reference_id']
+    plan_name = object['display_items'][0]['plan']['nickname']
     if team_id == "no_team_id_provided":
         raise NoTeamIdGivenError("No team ID provided")
     confirm_team_exists(team_id)
@@ -194,7 +199,7 @@ def lambda_handler(event, context):
             expiration = expiration_from_stripe
         expiration_string = expiration.strftime(DATETIME_FORMAT)
     
-    update_payment_info(team_id, subscription_id, expiration_string)
+    update_payment_info(team_id, expiration_string, plan_name, subscription_id)
     return build_response("success")
 
 

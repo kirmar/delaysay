@@ -156,6 +156,18 @@ def get_subscription_id_from_dynamodb(team_id):
     return subscription_id
 
 
+def get_payment_plan_nickname_from_dynamodb(team_id):
+    assert team_id
+    response = table.get_item(
+        Key={
+            'PK': "TEAM#" + team_id,
+            'SK': "team"
+            }
+    )
+    payment_plan = response['Item']['payment_plan']
+    return payment_plan
+
+
 def is_stripe_payment_current(subscription_id):
     assert subscription_id
     subscription = stripe.Subscription.retrieve(subscription_id)
@@ -168,6 +180,13 @@ def get_payment_expiration_from_stripe(subscription_id):
     expiration_unix_timestamp = subscription['current_period_end']
     expiration = datetime.utcfromtimestamp(expiration_unix_timestamp)
     return expiration
+
+
+def get_payment_plan_nickname_from_stripe(subscription_id):
+    assert subscription_id
+    subscription = stripe.Subscription.retrieve(subscription_id)
+    plan_name = subscription['plan']['nickname']
+    return plan_name
 
 
 def check_payment_status(payment_expiration, trial=False):
@@ -195,18 +214,22 @@ def check_payment_status(payment_expiration, trial=False):
             "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
 
 
-def update_payment_info(team_id, stripe_subscription_id, payment_expiration):
-    assert team_id and stripe_subscription_id and payment_expiration
+def update_payment_info(team_id, payment_expiration, payment_plan,
+                        stripe_subscription_id):
+    assert team_id and payment_expiration and payment_plan
+    assert stripe_subscription_id
     table.update_item(
         Key={
             'PK': "TEAM#" + team_id,
             'SK': "team"
         },
         UpdateExpression="SET payment_expiration = :val,"
-                         " stripe_subscription_id = :val2",
+                         " payment_plan = :val2,"
+                         " stripe_subscription_id = :val3",
         ExpressionAttributeValues={
             ":val": payment_expiration,
-            ":val2": stripe_subscription_id
+            ":val2": payment_plan,
+            ":val3": stripe_subscription_id
         }
     )
 
@@ -436,7 +459,8 @@ def parse_and_schedule(params):
     
     expiration = get_payment_expiration_from_dynamodb(team_id)
     subscription_id = get_subscription_id_from_dynamodb(team_id)
-    if subscription_id == "trial":
+    plan_name = get_payment_plan_nickname_from_dynamodb(team_id)
+    if plan_name == "trial":
         payment_status = check_payment_status(expiration, trial=True)
     else:
         payment_status = check_payment_status(expiration)
@@ -444,12 +468,14 @@ def parse_and_schedule(params):
             and is_stripe_payment_current(subscription_id)):
             expiration_from_stripe = get_payment_expiration_from_stripe(
                 subscription_id)
+            plan_name_from_stripe = get_payment_plan_nickname_from_stripe(
+                subscription_id)
             if expiration_from_stripe > expiration:
                 # The Stripe subscription was paid recently and
                 # the expiration should be updated accordingly.
                 expiration = expiration_from_stripe
                 expiration_string = expiration.strftime(DATETIME_FORMAT)
-                update_payment_info(team_id, subscription_id, expiration_string)
+                update_payment_info(team_id, expiration_string, plan_name, subscription_id)
             payment_status = check_payment_status(expiration)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     

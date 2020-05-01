@@ -94,7 +94,7 @@ def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time,
         'enterprise_id': enterprise_id,
         'create_time': create_time,
         'payment_expiration': payment_expiration,
-        'stripe_subscription_id': "trial"
+        'payment_plan': "trial"
     }
     for key in list(item):
         if not item[key]:
