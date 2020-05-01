@@ -35,9 +35,9 @@ class StripeSubscription:
         assert isinstance(id, str)
         self.id = id
         self.last_updated = 0
-        self._update()
+        self._refresh()
     
-    def _update(self):
+    def _refresh(self):
         if time.time() - self.last_updated < 2:
             return
         self.last_updated = time.time()
@@ -52,13 +52,13 @@ class StripeSubscription:
         self.plan_name = subscription['plan']['nickname']
     
     def is_current(self):
-        self._update()
+        self._refresh()
         return self.payment_status == "active"
     
     def get_expiration(self):
-        self._update()
+        self._refresh()
         return self.next_expiration
     
     def get_plan_nickname(self):
-        self._update()
+        self._refresh()
         return self.plan_name

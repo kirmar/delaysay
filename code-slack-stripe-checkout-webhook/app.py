@@ -10,9 +10,9 @@ import os
 import hashlib
 import hmac
 import time
-import stripe
+from Team import Team
 from StripeSubscription import StripeSubscription
-from DelaySayStripeCheckoutExceptions import (
+from DelaySayExceptions import (
     TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
     TimeToleranceExceededError)
 from datetime import datetime, timedelta
@@ -86,66 +86,6 @@ def verify_stripe_signature(stripe_signature, payload):
             "\nTIME_TOLERANCE_IN_SECONDS: " + str(TIME_TOLERANCE_IN_SECONDS))
 
 
-def confirm_team_exists(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        }
-    )
-    if 'Item' not in response:
-        raise TeamNotInDynamoDBError("Team did not authorize: " + str(team_id))
-
-
-def get_payment_expiration_from_dynamodb(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-            }
-    )
-    expiration_string = response['Item']['payment_expiration']
-    try:
-        expiration = datetime.strptime(expiration_string, DATETIME_FORMAT)
-        return expiration
-    except:
-        return expiration_string
-
-
-def get_payment_plan_nickname_from_dynamodb(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-            }
-    )
-    payment_plan = response['Item']['payment_plan']
-    return payment_plan
-
-
-def update_payment_info(team_id, payment_expiration, payment_plan,
-                        stripe_subscription_id):
-    assert team_id and payment_expiration and payment_plan
-    assert stripe_subscription_id
-    table.update_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        },
-        UpdateExpression="SET payment_expiration = :val,"
-                         " payment_plan = :val2,"
-                         " stripe_subscription_id = :val3",
-        ExpressionAttributeValues={
-            ":val": payment_expiration,
-            ":val2": payment_plan,
-            ":val3": stripe_subscription_id
-        }
-    )
-
-
 def build_response(res, err=None):
     if err:
         return {
@@ -173,13 +113,13 @@ def lambda_handler(event, context):
     plan_name = object['display_items'][0]['plan']['nickname']
     if team_id == "no_team_id_provided":
         raise NoTeamIdGivenError("No team ID provided")
-    confirm_team_exists(team_id)
+    
+    team = Team(team_id)
     
     # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
-    expiration = get_payment_expiration_from_dynamodb(team_id)
-    old_plan_name = get_payment_plan_nickname_from_dynamodb(team_id)
-    if expiration == "never":
+    expiration = team.get_payment_expiration()
+    if team.never_needs_to_pay():
         # The team does not need to pay, because they are beta testers.
         # TODO: This program should immediately cancel the payment
         # and tell the user.
@@ -187,13 +127,13 @@ def lambda_handler(event, context):
     else:
         subscription = StripeSubscription(subscription_id)
         expiration_from_stripe = subscription.get_expiration()
-        if old_plan_name == "trial" or expiration_from_stripe > expiration:
+        if team.is_trialing() or expiration_from_stripe > expiration:
             # TODO: If a team already has a longer subscription, this
             # program should immediately cancel the payment and tell them.
             expiration = expiration_from_stripe
         expiration_string = expiration.strftime(DATETIME_FORMAT)
     
-    update_payment_info(team_id, expiration_string, plan_name, subscription_id)
+    team.update_payment_info(expiration_string, plan_name, subscription_id)
     return build_response("success")
 
 

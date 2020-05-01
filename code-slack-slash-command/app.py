@@ -13,25 +13,18 @@ import hashlib
 import hmac
 import time
 import re
-import aws_encryption_sdk
 from urllib.parse import parse_qs
+from User import User
+from Team import Team
 from StripeSubscription import StripeSubscription
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
     UserAuthorizeError, CommandParseError, TimeParseError)
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from random import sample
 
-kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
-    os.environ['KMS_MASTER_KEY_ARN']
-])
-
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
-
 ssm = boto3.client('ssm')
-
 slack_signing_secret_parameter = ssm.get_parameter(
     # A slash is needed because the Slack signing secret parameter
     # in template.yaml is used for the IAM permission (slash forbidden,
@@ -93,74 +86,8 @@ def verify_slack_signature(request_timestamp, received_signature, request_body):
             "\nTIME_TOLERANCE_IN_SECONDS: " + str(TIME_TOLERANCE_IN_SECONDS))
 
 
-def decrypt_oauth_token(encrypted_token):
-    token_as_bytes, decryptor_header = aws_encryption_sdk.decrypt(
-        source=encrypted_token,
-        key_provider=kms_key_provider
-    )
-    token = token_as_bytes.decode()
-    return token
-
-
-def get_user_auth_token(user_id):
-    response = table.get_item(
-        Key={
-            'PK': "USER#" + user_id,
-            'SK': "user"
-        }
-    )
-    try:
-        encrypted_token_as_boto3_binary = response['Item']['token']
-    except KeyError:
-        raise UserAuthorizeError("User did not authorize")
-    encrypted_token_as_bytes = encrypted_token_as_boto3_binary.value
-    return decrypt_oauth_token(encrypted_token_as_bytes)
-
-
-def get_payment_expiration_from_dynamodb(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-            }
-    )
-    expiration_string = response['Item']['payment_expiration']
-    try:
-        expiration = datetime.strptime(expiration_string, DATETIME_FORMAT)
-        return expiration
-    except:
-        return expiration_string
-
-
-def get_subscription_id_from_dynamodb(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        }
-    )
-    subscription_id = response['Item'].get('stripe_subscription_id')
-    return subscription_id
-
-
-def get_payment_plan_nickname_from_dynamodb(team_id):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-            }
-    )
-    payment_plan = response['Item']['payment_plan']
-    return payment_plan
-
-
 def check_payment_status(payment_expiration, trial=False):
     # The team's trial has ended, so check if payment is current.
-    if payment_expiration == "never":
-        return "green"
     now = datetime.utcnow()
     time_till_expiration = payment_expiration - now
     time_since_expiration = now - payment_expiration
@@ -180,51 +107,6 @@ def check_payment_status(payment_expiration, trial=False):
             "\nTRIAL_WARNING_PERIOD: " + str(TRIAL_WARNING_PERIOD) +
             "\nSUBSCRIPTION_WARNING_PERIOD: " + str(SUBSCRIPTION_WARNING_PERIOD) +
             "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
-
-
-def update_payment_info(team_id, payment_expiration, payment_plan,
-                        stripe_subscription_id):
-    assert team_id and payment_expiration and payment_plan
-    assert stripe_subscription_id
-    table.update_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        },
-        UpdateExpression="SET payment_expiration = :val,"
-                         " payment_plan = :val2,"
-                         " stripe_subscription_id = :val3",
-        ExpressionAttributeValues={
-            ":val": payment_expiration,
-            ":val2": payment_plan,
-            ":val3": stripe_subscription_id
-        }
-    )
-
-
-def get_user_timezone(user_id, token):
-    r = requests.post(
-        url="https://slack.com/api/users.info",
-        data={
-            'user': user_id
-        },
-        headers={
-            'Content-Type': "application/x-www-form-urlencoded",
-            'Authorization': "Bearer " + token
-        }
-    )
-    if r.status_code != 200:
-        print(r.status_code, r.reason)
-        raise Exception("requests.post failed")
-    user_object = json.loads(r.content)
-    if not user_object['ok']:
-        raise Exception(
-            "get_user_timezone() failed: " + user_object['error'] +
-            "\nFor more information, see here:"
-            "\nhttps://api.slack.com/methods/users.info")
-    tz_offset = user_object['user']['tz_offset']
-    user_tz = timezone(timedelta(seconds=tz_offset))
-    return user_tz
 
 
 def post_and_print_info_and_confirm_success(response_url, text):
@@ -273,8 +155,10 @@ def list_scheduled_messages(params):
     team_id = params['team_id'][0]
     response_url = params['response_url'][0]
     
+    user = User(user_id)
+    
     try:
-        token = get_user_auth_token(user_id)
+        token = user.get_auth_token()
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
@@ -323,8 +207,10 @@ def delete_scheduled_message(params):
     response_url = params['response_url'][0]
     command_text = params['text'][0]
     
+    user = User(user_id)
+    
     try:
-        token = get_user_auth_token(user_id)
+        token = user.get_auth_token()
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
@@ -411,8 +297,11 @@ def parse_and_schedule(params):
     command_text = params['text'][0]
     response_url = params['response_url'][0]
     
+    user = User(user_id)
+    team = Team(team_id)
+    
     try:
-        token = get_user_auth_token(user_id)
+        token = user.get_auth_token()
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
@@ -423,15 +312,16 @@ def parse_and_schedule(params):
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
-    user_tz = get_user_timezone(user_id, token)
+    user_tz = user.get_timezone()
     
-    expiration = get_payment_expiration_from_dynamodb(team_id)
-    plan_name = get_payment_plan_nickname_from_dynamodb(team_id)
-    if plan_name == "trial":
+    expiration = team.get_payment_expiration()
+    if team.never_needs_to_pay():
+        payment_status = "green"
+    elif team.is_trialing():
         payment_status = check_payment_status(expiration, trial=True)
     else:
         payment_status = check_payment_status(expiration)
-        subscription_id = get_subscription_id_from_dynamodb(team_id)
+        subscription_id = team.get_subscription_id()
         subscription = StripeSubscription(subscription_id)
         if (payment_status in ["yellow", "red"] and subscription.is_current()):
             expiration_from_stripe = subscription.get_expiration()
@@ -441,9 +331,8 @@ def parse_and_schedule(params):
                 # the expiration should be updated accordingly.
                 expiration = expiration_from_stripe
                 expiration_string = expiration.strftime(DATETIME_FORMAT)
-                update_payment_info(
-                    team_id, expiration_string, plan_name_from_stripe,
-                    subscription_id)
+                team.update_payment_info(
+                    expiration_string, plan_name_from_stripe, subscription_id)
             payment_status = check_payment_status(expiration)
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     
