@@ -158,6 +158,24 @@ Save the Stripe signing signature:
 - Click **"Reveal live key token"**
 - Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
 
+Create pricing plans:
+
+- Click **"Products"**
+- Click **"New"**
+    - What kind of product? Recurring products
+    - Product name: DelaySay Slack app
+    - Leave the unit label and statement descriptor blank (default)
+- Create the product and add a pricing plan:
+    - Plan nickname: recurring-1month-earlyadopter
+    - Leave the ID, pricing, currency, tiers, and trial period as their defaults
+    - For a $5/month plan:
+        - Price per unit: $5.00 per unit
+        - Billing interval: Monthly
+- Create the pricing plan and click **"Use with Checkout"**
+    - Update the success and cancel URLs as needed
+    - Make note of the example script for creating a checkout button
+- On the side bar, toggle on **"View test data"** and follow the steps again for a test product and test pricing plan (Add " [TEST]" to the end of the product name and "test-" to the beginning of the plan nickname if you'd like.)
+
 If you want to add team members:
 
 - Click **"Settings"**
