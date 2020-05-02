@@ -11,6 +11,14 @@ kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
     os.environ['KMS_MASTER_KEY_ARN']
 ])
 
+def encrypt_oauth_token(token):
+    token_as_bytes = token.encode()
+    encrypted_token, encryptor_header = aws_encryption_sdk.encrypt(
+        source=token_as_bytes,
+        key_provider=kms_key_provider
+    )
+    return encrypted_token
+
 def decrypt_oauth_token(encrypted_token):
     token_as_bytes, decryptor_header = aws_encryption_sdk.decrypt(
         source=encrypted_token,
@@ -26,6 +34,9 @@ class User:
         dynamodb = boto3.resource("dynamodb")
         self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
         self.id = id
+        self._reset()
+    
+    def _reset(self):
         self.token = None
         self.timezone = None
     
@@ -69,3 +80,21 @@ class User:
             tz_offset = user_object['user']['tz_offset']
             self.timezone = timezone(timedelta(seconds=tz_offset))
         return self.timezone
+    
+    
+    def add_to_dynamodb(self, token, team_id, team_name, enterprise_id,
+                        create_time):
+        item = {
+            'PK': "USER#" + self.id,
+            'SK': "user",
+            'token': encrypt_oauth_token(token),
+            'team_id': team_id,
+            'team_name': team_name,
+            'enterprise_id': enterprise_id,
+            'create_time': create_time
+        }
+        for key in list(item):
+            if not item[key]:
+                del item[key]
+        self.table.put_item(Item=item)
+        self._reset()

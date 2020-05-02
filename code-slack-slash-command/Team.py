@@ -16,8 +16,8 @@ class Team:
         self.last_updated = 0
         self._refresh()
     
-    def _refresh(self):
-        if time.time() - self.last_updated < 2:
+    def _refresh(self, force=False, alert_if_not_in_dynamodb=False):
+        if not force and time.time() - self.last_updated < 2:
             return
         self.last_updated = time.time()
         response = self.table.get_item(
@@ -27,31 +27,59 @@ class Team:
                 }
         )
         if 'Item' not in response:
-            raise TeamNotInDynamoDBError("Team did not authorize: " + self.id)
-        expiration_string = response['Item']['payment_expiration']
-        try:
-            self.payment_expiration = datetime.strptime(
-                expiration_string, DATETIME_FORMAT)
-        except:
-            self.payment_expiration = expiration_string
-        self.subscription_id = response['Item'].get('stripe_subscription_id')
-        self.payment_plan_nickname = response['Item']['payment_plan']
+            if alert_if_not_in_dynamodb:
+                raise TeamNotInDynamoDBError(
+                    "Team did not authorize: " + self.id)
+            self.is_in_dynamodb = False
+            self.payment_expiration = None
+            self.subscription_id = None
+            self.payment_plan_nickname = None
+        else:
+            self.is_in_dynamodb = True
+            expiration_string = response['Item']['payment_expiration']
+            try:
+                self.payment_expiration = datetime.strptime(
+                    expiration_string, DATETIME_FORMAT)
+            except:
+                self.payment_expiration = expiration_string
+            self.subscription_id = response['Item'].get('stripe_subscription_id')
+            self.payment_plan_nickname = response['Item']['payment_plan']
     
     def never_needs_to_pay(self):
-        self._refresh()
+        self._refresh(alert_if_not_in_dynamodb=True)
         return self.payment_expiration == "never"
     
     def is_trialing(self):
-        self._refresh()
+        self._refresh(alert_if_not_in_dynamodb=True)
         return self.payment_plan_nickname == "trial"
     
     def get_payment_expiration(self):
-        self._refresh()
+        self._refresh(alert_if_not_in_dynamodb=True)
         return self.payment_expiration
     
     def get_subscription_id(self):
-        self._refresh()
+        self._refresh(alert_if_not_in_dynamodb=True)
         return self.subscription_id
+    
+    def add_to_dynamodb(self, team_name, enterprise_id, create_time,
+                        payment_expiration):
+        self._refresh()
+        if self.is_in_dynamodb:
+            return
+        item = {
+            'PK': "TEAM#" + self.id,
+            'SK': "team",
+            'team_name': team_name,
+            'enterprise_id': enterprise_id,
+            'create_time': create_time,
+            'payment_expiration': payment_expiration,
+            'payment_plan': "trial"
+        }
+        for key in list(item):
+            if not item[key]:
+                del item[key]
+        self.table.put_item(Item=item)
+        self._refresh(force=True)
     
     def update_payment_info(self, payment_expiration, payment_plan,
                             stripe_subscription_id):
@@ -70,4 +98,4 @@ class Team:
                 ":val3": stripe_subscription_id
             }
         )
-        self._refresh()
+        self._refresh(force=True)

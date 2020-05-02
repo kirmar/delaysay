@@ -8,15 +8,9 @@ import traceback
 import boto3
 import requests
 import os
-import aws_encryption_sdk
+from User import User
+from Team import Team
 from datetime import datetime, timedelta
-
-kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
-    os.environ['KMS_MASTER_KEY_ARN']
-])
-
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
 ssm = boto3.client('ssm')
 
@@ -48,59 +42,6 @@ FREE_TRIAL_PERIOD = timedelta(days=14)
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-
-
-def encrypt_oauth_token(token):
-    token_as_bytes = token.encode()
-    encrypted_token, encryptor_header = aws_encryption_sdk.encrypt(
-        source=token_as_bytes,
-        key_provider=kms_key_provider
-    )
-    return encrypted_token
-
-
-def add_user_to_dynamodb(user_id, token, team_id, team_name, enterprise_id,
-                         create_time):
-    assert user_id and token
-    item = {
-        'PK': "USER#" + user_id,
-        'SK': "user",
-        'token': encrypt_oauth_token(token),
-        'team_id': team_id,
-        'team_name': team_name,
-        'enterprise_id': enterprise_id,
-        'create_time': create_time
-    }
-    for key in list(item):
-        if not item[key]:
-            del item[key]
-    table.put_item(Item=item)
-
-
-def add_team_to_dynamodb(team_id, team_name, enterprise_id, create_time,
-                         payment_expiration):
-    assert team_id
-    response = table.get_item(
-        Key={
-            'PK': "TEAM#" + team_id,
-            'SK': "team"
-        }
-    )
-    if 'Item' in response:
-        return
-    item = {
-        'PK': "TEAM#" + team_id,
-        'SK': "team",
-        'team_name': team_name,
-        'enterprise_id': enterprise_id,
-        'create_time': create_time,
-        'payment_expiration': payment_expiration,
-        'payment_plan': "trial"
-    }
-    for key in list(item):
-        if not item[key]:
-            del item[key]
-    table.put_item(Item=item)
 
 
 def build_response(res, err=None):
@@ -169,12 +110,13 @@ def lambda_handler(event, context):
     create_time_as_string = create_time.strftime(DATETIME_FORMAT)
     payment_expiration = create_time + FREE_TRIAL_PERIOD
     payment_expiration_as_string = payment_expiration.strftime(DATETIME_FORMAT)
-    add_user_to_dynamodb(
-        user_id, token, team_id, team_name, enterprise_id,
-        create_time_as_string)
-    add_team_to_dynamodb(
-        team_id, team_name, enterprise_id, create_time_as_string,
-        payment_expiration_as_string)
+    
+    user = User(user_id)
+    user.add_to_dynamodb(token, team_id, team_name, enterprise_id,
+                         create_time_as_string)
+    team = Team(team_id)
+    team.add_to_dynamodb(team_name, enterprise_id, create_time_as_string,
+                         payment_expiration_as_string)
     return build_response("success")
 
 
