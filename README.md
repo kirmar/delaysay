@@ -225,9 +225,9 @@ Team members:
 
 - Kira Hammond: Lead developer
 
-- Nicholas Hammond: Slack configuration & moral support
-
 - Eric Hammond: Project manager & technical advisor
+
+- Nicholas Hammond: Slack configuration & moral support
 
 Code copied liberally from these excellent resources:
 
