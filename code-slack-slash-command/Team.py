@@ -34,6 +34,7 @@ class Team:
             else:
                 return
         self.is_in_dynamodb = True
+        self.best_subscription = None
         date = response['Item']['payment_expiration']
         try:
             self.payment_expiration = datetime.strptime(date, DATETIME_FORMAT)
@@ -41,9 +42,9 @@ class Team:
             # The expiration is probably "never".
             self.payment_expiration = date
         self.payment_plan = response['Item']['payment_plan']
-        self.subscription = None
-        id = response['Item'].get('stripe_subscription_id')
-        self.add_subscription(id)
+        self.subscriptions = []
+        for id in response['Item'].get('stripe_subscriptions'):
+            self.add_subscription(id)
     
     def is_trialing(self):
         self._refresh(alert_if_not_in_dynamodb=True)
@@ -84,25 +85,33 @@ class Team:
         self._refresh(force=True)
     
     def add_subscription(self, subscription_id):
-        if not subscription_id:
-            return
+        # Note as of 2020-05-02: There should only be one subscription
+        # for each team, but in the case that there are multiple,
+        # I want DynamoDB to keep track for debugging/support purposes.
+        # The "best_subscription" is the one that expires latest.
         self._refresh(alert_if_not_in_dynamodb=True)
-        self.subscription = StripeSubscription(subscription_id)
-        if self.payment_expiration == "never":
+        subscription = StripeSubscription(subscription_id)
+        if subscription in self.subscriptions:
             return
-        self.payment_expiration = self.subscription.get_expiration()
-        self.payment_plan = self.subscription.get_plan_nickname()
+        self.subscriptions.append(subscription)
+        self.best_subscription = max(self.subscriptions)
+        if (self.payment_expiration == "never"
+            or not self.best_subscription.is_current()):
+            return
+        self.payment_expiration = self.best_subscription.get_expiration()
+        self.payment_plan = self.best_subscription.get_plan_nickname()
         self.table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"
             },
-            UpdateExpression="SET payment_expiration = :val,"
-                             " payment_plan = :val2,"
-                             " stripe_subscription_id = :val3",
+            UpdateExpression=
+                "SET payment_expiration = :val,"
+                " payment_plan = :val2,"
+                " stripe_subscriptions = list_append(stripe_subscriptions, :val3)",
             ExpressionAttributeValues={
                 ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
                 ":val2": self.payment_plan,
-                ":val3": subscription_id
+                ":val3": [subscription_id]
             }
         )

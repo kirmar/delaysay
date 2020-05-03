@@ -54,3 +54,15 @@ class StripeSubscription:
     def get_plan_nickname(self):
         self._refresh()
         return self.plan_name
+    
+    def __gt__(self, other):
+        if self.is_current() and not other.is_current():
+            return False
+        elif other.is_current() and not self.is_current():
+            return True
+        else:
+            self._refresh()
+            return self.next_expiration > other.get_expiration()
+    
+    def __eq__(self, other):
+        return self.id == other.id
