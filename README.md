@@ -70,6 +70,7 @@ Deploy the SAM app
       --capabilities CAPABILITY_IAM \
       --parameter-overrides \
         "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
+        "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
         "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
