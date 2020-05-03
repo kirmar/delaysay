@@ -11,6 +11,8 @@ Note: The directions below explain how to create the Slack app using the code in
 
 - AWS account
 
+- a domain with DNS hosted in AWS Route 53
+
 - aws-cli: <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html>
 
 - sam-cli: <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
@@ -35,6 +37,8 @@ Set environment variables to match your preferences
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_REGION=us-east-1
+    export DELAYSAY_API_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
+    export DELAYSAY_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
     export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
@@ -43,7 +47,7 @@ Set environment variables to match your preferences
     export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
     export DELAYSAY_KMS_MASTER_KEY_ARN=PleaseSeeTheSectionOnCreatingTheCMK
     export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
-    
+
 Create the S3 bucket for SAM deployments
 
     aws s3 mb \
@@ -65,6 +69,7 @@ Deploy the SAM app
       --template-file packaged.yaml \
       --capabilities CAPABILITY_IAM \
       --parameter-overrides \
+        "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
         "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
@@ -73,7 +78,7 @@ Deploy the SAM app
         "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
         "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
 
-Get the endpoint URL
+Get the endpoint URL (It should be at your custom domain, as described in the step below about moving the API Gateway endpoint.)
 TBD: Update the parameter name when it changes
 
     endpoint_url=$(aws cloudformation describe-stacks \
@@ -83,11 +88,27 @@ TBD: Update the parameter name when it changes
       --query 'Stacks[].Outputs[?OutputKey==`DelaySayApi`][OutputValue]')
     echo endpoint_url=$endpoint_url
 
-Save this endpoint URL for configuring the Slack App below.
+Save this endpoint URL for configuring the Slack app and Stripe account below.
 
 In your Lambda console, change the function's timeout to 5 minutes. (Just in case! That way Lambda doesn't silently time out and leave the user wondering what happened.)
 
 In your IAM console, create a policy that allows the action "lambda:InvokeFunction" on your Lambda function's ARN. Attach it to the Lambda's IAM role.
+
+
+## Move the API Gateway endpoint to a custom domain
+
+Replace the value of $DELAYSAY_DOMAIN_NAME with your website's domain name (example.com).
+
+For the API domain, choose a path at your website (api.example.com).
+
+Validate the ACM Certificate by creating a DNS record in Route 53:
+
+- Complete the steps below while you wait for CloudFormation to finish deploying the first time.
+- In the AWS Certificate Manager console, expand the entry with your domain name. Its status should be "Pending validation." Find your domain again and expand it.
+- Click "Create record in Route 53"
+- Click "Create"
+
+Replace the value of $DELAYSAY_API_DOMAIN_NAME with the domain name you chose.
 
 
 ## Configure Slack App
@@ -185,7 +206,8 @@ If you want to add team members:
 
 ## Create customer master key (CMK)
 
-In your KMS console, create a new key.
+In your KMS console, create a new key:
+
 - For the key type, select **"Symmetric"**
 - For the key material origin, select **"KMS"**
 - For the alias, type in the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS

@@ -7,14 +7,17 @@ Description: >
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
-  Api:
-    EndpointConfiguration: REGIONAL
-    Name: "DelaySayAPI"
   Function:
     Timeout: 300
     MemorySize: 1792
 
 Parameters:
+  DelaySayApiDomain:
+    Type: String
+    Description: "Domain name for the DelaySay API"
+  DelaySayDomain:
+    Type: String
+    Description: "Domain name for the DelaySay"
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
@@ -38,6 +41,33 @@ Parameters:
     Description: "KMS key ARN for encrypting Slack users' OAuth tokens"
 
 Resources:
+  DelaySayApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DelaySayApiDomain
+      ValidationMethod: DNS
+  DelaySayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      Domain:
+        DomainName: !Ref DelaySayApiDomain
+        CertificateArn: !Ref DelaySayApiCertificate
+  DelaySayApiDns:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Type: A
+      Name: !Ref DelaySayApiDomain
+      # Note: Any changes to the API domain or Lambda event paths
+      # can take 15 or more minutes to finish updating. Until then,
+      # slash commands may fail with an "http_client_error" and
+      # user auth may fail with "Missing Authentication Token".
+      HostedZoneName: !Sub "${DelaySayDomain}."
+      AliasTarget:
+        DNSName: !GetAtt DelaySayApi.DomainName.RegionalDomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: !GetAtt DelaySayApi.DomainName.RegionalHostedZoneId
   DelaySayTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -82,8 +112,9 @@ Resources:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /delaysay-slash-command
+            Path: /slash-command
             Method: ANY
+            RestApiId: !Ref DelaySayApi
   DelaySayUserAuthorizationFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -107,8 +138,9 @@ Resources:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /delaysay-user-authorization
+            Path: /user-authorization
             Method: ANY
+            RestApiId: !Ref DelaySayApi
   DelaySayStripeCheckoutWebhookFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -134,16 +166,14 @@ Resources:
         DelaySayStripeCheckout:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /delaysay-stripe-checkout-webhook
+            Path: /stripe-checkout-webhook
             Method: ANY
+            RestApiId: !Ref DelaySayApi
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   DelaySayApi:
     Description: "API Gateway endpoint URL for Prod stage for DelaySay function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/delaysay/"
+    Value: !Ref DelaySayApiDomain
   DelaySayTable:
     Description: "DelaySay DynamoDB Table ARN"
     Value: !GetAtt DelaySayTable.Arn
