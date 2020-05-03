@@ -11,7 +11,6 @@ import hashlib
 import hmac
 import time
 from Team import Team
-from StripeSubscription import StripeSubscription
 from DelaySayExceptions import (
     TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
     TimeToleranceExceededError)
@@ -110,25 +109,8 @@ def lambda_handler(event, context):
         raise NoTeamIdGivenError("No team ID provided")
     
     team = Team(team_id)
-    
-    # TODO: Is this the correct way to convert the Unix timestamp??
     subscription_id = object['subscription']
-    expiration = team.get_payment_expiration()
-    if team.never_needs_to_pay():
-        # The team does not need to pay, because they are beta testers.
-        # TODO: This program should immediately cancel the payment
-        # and tell the user.
-        expiration_string = expiration
-    else:
-        subscription = StripeSubscription(subscription_id)
-        expiration_from_stripe = subscription.get_expiration()
-        if team.is_trialing() or expiration_from_stripe > expiration:
-            # TODO: If a team already has a longer subscription, this
-            # program should immediately cancel the payment and tell them.
-            expiration = expiration_from_stripe
-        expiration_string = expiration.strftime(DATETIME_FORMAT)
-    
-    team.update_payment_info(expiration_string, plan_name, subscription_id)
+    team.add_subscription(subscription_id)
     return build_response("success")
 
 

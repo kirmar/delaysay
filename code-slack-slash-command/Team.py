@@ -1,7 +1,8 @@
 import boto3
 import time
 import os
-from datetime import datetime
+from StripeSubscription import StripeSubscription
+from datetime import datetime, timedelta
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -9,7 +10,7 @@ DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 class Team:
     
     def __init__(self, id):
-        assert isinstance(id, str)
+        assert id and isinstance(id, str)
         dynamodb = boto3.resource("dynamodb")
         self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
         self.id = id
@@ -27,42 +28,43 @@ class Team:
                 }
         )
         if 'Item' not in response:
+            self._is_in_dynamodb = False
             if alert_if_not_in_dynamodb:
-                raise TeamNotInDynamoDBError(
-                    "Team did not authorize: " + self.id)
-            self.is_in_dynamodb = False
-            self.payment_expiration = None
-            self.subscription_id = None
-            self.payment_plan_nickname = None
-        else:
-            self.is_in_dynamodb = True
-            expiration_string = response['Item']['payment_expiration']
-            try:
-                self.payment_expiration = datetime.strptime(
-                    expiration_string, DATETIME_FORMAT)
-            except:
-                self.payment_expiration = expiration_string
-            self.subscription_id = response['Item'].get('stripe_subscription_id')
-            self.payment_plan_nickname = response['Item']['payment_plan']
-    
-    def never_needs_to_pay(self):
-        self._refresh(alert_if_not_in_dynamodb=True)
-        return self.payment_expiration == "never"
+                raise TeamNotInDynamoDBError("Unauthorized team: " + self.id)
+            else:
+                return
+        self.is_in_dynamodb = True
+        date = response['Item']['payment_expiration']
+        try:
+            self.payment_expiration = datetime.strptime(date, DATETIME_FORMAT)
+        except:
+            # The expiration is probably "never".
+            self.payment_expiration = date
+        self.payment_plan = response['Item']['payment_plan']
+        self.subscription = None
+        id = response['Item'].get('stripe_subscription_id')
+        self.add_subscription(id)
     
     def is_trialing(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        return self.payment_plan_nickname == "trial"
+        return self.payment_plan == "trial"
     
-    def get_payment_expiration(self):
+    def get_time_till_payment_is_due(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        return self.payment_expiration
+        if self.payment_expiration == "never":
+            return timedelta(years=1000000)
+        now = datetime.utcnow()
+        return self.payment_expiration - now
     
-    def get_subscription_id(self):
+    def get_time_payment_has_been_overdue(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        return self.subscription_id
+        if self.payment_expiration == "never":
+            return 0
+        now = datetime.utcnow()
+        return now - self.payment_expiration
     
     def add_to_dynamodb(self, team_name, enterprise_id, create_time,
-                        payment_expiration):
+                        trial_expiration):
         self._refresh()
         if self.is_in_dynamodb:
             return
@@ -71,8 +73,8 @@ class Team:
             'SK': "team",
             'team_name': team_name,
             'enterprise_id': enterprise_id,
-            'create_time': create_time,
-            'payment_expiration': payment_expiration,
+            'create_time': create_time.strftime(DATETIME_FORMAT),
+            'payment_expiration': trial_expiration.strftime(DATETIME_FORMAT),
             'payment_plan': "trial"
         }
         for key in list(item):
@@ -81,9 +83,15 @@ class Team:
         self.table.put_item(Item=item)
         self._refresh(force=True)
     
-    def update_payment_info(self, payment_expiration, payment_plan,
-                            stripe_subscription_id):
-        assert payment_expiration and payment_plan and stripe_subscription_id
+    def add_subscription(self, subscription_id):
+        if not subscription_id:
+            return
+        self._refresh(alert_if_not_in_dynamodb=True)
+        self.subscription = StripeSubscription(subscription_id)
+        if self.payment_expiration == "never":
+            return
+        self.payment_expiration = self.subscription.get_expiration()
+        self.payment_plan = self.subscription.get_plan_nickname()
         self.table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
@@ -93,9 +101,8 @@ class Team:
                              " payment_plan = :val2,"
                              " stripe_subscription_id = :val3",
             ExpressionAttributeValues={
-                ":val": payment_expiration,
-                ":val2": payment_plan,
-                ":val3": stripe_subscription_id
+                ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
+                ":val2": self.payment_plan,
+                ":val3": subscription_id
             }
         )
-        self._refresh(force=True)

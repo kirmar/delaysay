@@ -30,9 +30,6 @@ CLIENT_SECRET = slack_client_secret_parameter['Parameter']['Value']
 # Stop access to DelaySay this long after they authorize DelaySay.
 FREE_TRIAL_PERIOD = timedelta(days=14)
 
-# This is the format used to log dates in the DynamoDB table.
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-
 
 def build_response(res, err=None):
     if err:
@@ -97,16 +94,12 @@ def lambda_handler(event, context):
     else:
         enterprise_id = None
     create_time = datetime.utcnow()
-    create_time_as_string = create_time.strftime(DATETIME_FORMAT)
-    payment_expiration = create_time + FREE_TRIAL_PERIOD
-    payment_expiration_as_string = payment_expiration.strftime(DATETIME_FORMAT)
+    trial_expiration = create_time + FREE_TRIAL_PERIOD
     
     user = User(user_id)
-    user.add_to_dynamodb(token, team_id, team_name, enterprise_id,
-                         create_time_as_string)
     team = Team(team_id)
-    team.add_to_dynamodb(team_name, enterprise_id, create_time_as_string,
-                         payment_expiration_as_string)
+    user.add_to_dynamodb(token, team_id, team_name, enterprise_id, create_time)
+    team.add_to_dynamodb(team_name, enterprise_id, create_time, trial_expiration)
     return build_response("success")
 
 

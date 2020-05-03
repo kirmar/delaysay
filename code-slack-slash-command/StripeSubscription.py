@@ -22,7 +22,7 @@ TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
 class StripeSubscription:
     
     def __init__(self, id):
-        assert isinstance(id, str)
+        assert id and isinstance(id, str)
         self.id = id
         self.last_updated = 0
         self._refresh()
@@ -43,7 +43,9 @@ class StripeSubscription:
     
     def is_current(self):
         self._refresh()
-        return self.payment_status == "active"
+        has_not_expired = (datetime.utcnow() > self.next_expiration)
+        is_paid = (self.payment_status == "active")
+        return has_not_expired and is_paid
     
     def get_expiration(self):
         self._refresh()

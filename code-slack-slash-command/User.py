@@ -11,6 +11,9 @@ kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
     os.environ['KMS_MASTER_KEY_ARN']
 ])
 
+# This is the format used to log dates in the DynamoDB table.
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 def encrypt_oauth_token(token):
     token_as_bytes = token.encode()
     encrypted_token, encryptor_header = aws_encryption_sdk.encrypt(
@@ -30,7 +33,7 @@ def decrypt_oauth_token(encrypted_token):
 class User:
     
     def __init__(self, id):
-        assert isinstance(id, str)
+        assert id and isinstance(id, str)
         dynamodb = boto3.resource("dynamodb")
         self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
         self.id = id
@@ -51,7 +54,7 @@ class User:
             try:
                 encrypted_token_as_boto3_binary = response['Item']['token']
             except KeyError:
-                raise UserAuthorizeError("User did not authorize")
+                raise UserAuthorizeError("Unauthorized user: " + self.id)
             encrypted_token_as_bytes = encrypted_token_as_boto3_binary.value
             self.token = decrypt_oauth_token(encrypted_token_as_bytes)
         return self.token
@@ -91,7 +94,7 @@ class User:
             'team_id': team_id,
             'team_name': team_name,
             'enterprise_id': enterprise_id,
-            'create_time': create_time
+            'create_time': create_time.strftime(DATETIME_FORMAT)
         }
         for key in list(item):
             if not item[key]:

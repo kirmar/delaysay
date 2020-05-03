@@ -16,7 +16,6 @@ import re
 from urllib.parse import parse_qs
 from User import User
 from Team import Team
-from StripeSubscription import StripeSubscription
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
@@ -79,29 +78,6 @@ def verify_slack_signature(request_timestamp, received_signature, request_body):
             "\ncurrent_timestamp: " + str(current_timestamp) +
             "\nrequest_timestamp: " + str(request_timestamp) +
             "\nTIME_TOLERANCE_IN_SECONDS: " + str(TIME_TOLERANCE_IN_SECONDS))
-
-
-def check_payment_status(payment_expiration, trial=False):
-    # The team's trial has ended, so check if payment is current.
-    now = datetime.utcnow()
-    time_till_expiration = payment_expiration - now
-    time_since_expiration = now - payment_expiration
-    if time_till_expiration > (TRIAL_WARNING_PERIOD if trial
-                               else SUBSCRIPTION_WARNING_PERIOD):
-        return "green"
-    elif time_since_expiration <= PAYMENT_GRACE_PERIOD:
-            return "yellow" + (" trial" if trial else "")
-    elif time_since_expiration > PAYMENT_GRACE_PERIOD:
-        return "red" + (" trial" if trial else "")
-    else:
-        raise Exception(
-            "check_payment_status() failed: " +
-            "\npayment_expiration: " + str(payment_expiration) +
-            "\ntime_till_expiration: " + str(time_till_expiration) +
-            "\ntrial: " + str(trial) +
-            "\nTRIAL_WARNING_PERIOD: " + str(TRIAL_WARNING_PERIOD) +
-            "\nSUBSCRIPTION_WARNING_PERIOD: " + str(SUBSCRIPTION_WARNING_PERIOD) +
-            "\nPAYMENT_GRACE_PERIOD: " + str(PAYMENT_GRACE_PERIOD))
 
 
 def post_and_print_info_and_confirm_success(response_url, text):
@@ -307,28 +283,21 @@ def parse_and_schedule(params):
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
-    user_tz = user.get_timezone()
-    
-    expiration = team.get_payment_expiration()
-    if team.never_needs_to_pay():
-        payment_status = "green"
-    elif team.is_trialing():
-        payment_status = check_payment_status(expiration, trial=True)
+    if team.is_trialing():
+        if team.get_time_payment_has_been_overdue() > PAYMENT_GRACE_PERIOD:
+            payment_status = "red trial"
+        elif team.get_time_till_payment_is_due() < TRIAL_WARNING_PERIOD:
+            payment_status = "yellow trial"
+        else:
+            payment_status = "green"
     else:
-        payment_status = check_payment_status(expiration)
-        subscription_id = team.get_subscription_id()
-        subscription = StripeSubscription(subscription_id)
-        if (payment_status in ["yellow", "red"] and subscription.is_current()):
-            expiration_from_stripe = subscription.get_expiration()
-            plan_name_from_stripe = subscription.get_plan_nickname()
-            if expiration_from_stripe > expiration:
-                # The Stripe subscription was paid recently and
-                # the expiration should be updated accordingly.
-                expiration = expiration_from_stripe
-                expiration_string = expiration.strftime(DATETIME_FORMAT)
-                team.update_payment_info(
-                    expiration_string, plan_name_from_stripe, subscription_id)
-            payment_status = check_payment_status(expiration)
+        if team.get_time_payment_has_been_overdue() > PAYMENT_GRACE_PERIOD:
+            payment_status = "red"
+        elif team.get_time_till_payment_is_due() < SUBSCRIPTION_WARNING_PERIOD:
+            payment_status = "yellow"
+        else:
+            payment_status = "green"
+    
     subscribe_url = "delaysay.com/subscribe/?team=" + team_id
     
     if payment_status.startswith("red"):
@@ -346,6 +315,7 @@ def parse_and_schedule(params):
     
     request_unix_timestamp = params['request_timestamp']
     
+    user_tz = user.get_timezone()
     try:
         parser = SlashCommandParser(
             command_text,

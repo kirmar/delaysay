@@ -128,12 +128,18 @@ Resources:
             ParameterName: !Ref SlackClientIdSsmName
         - SSMParameterReadPolicy:
             ParameterName: !Ref SlackClientSecretSsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeApiKeySsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeTestingApiKeySsmName
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
           SLACK_CLIENT_ID_SSM_NAME: !Sub "/${SlackClientIdSsmName}"
           SLACK_CLIENT_SECRET_SSM_NAME: !Sub "/${SlackClientSecretSsmName}"
+          STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
       Events:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
