@@ -7,23 +7,13 @@ from datetime import datetime
 ssm = boto3.client('ssm')
 
 stripe_api_key_parameter = ssm.get_parameter(
-    # A slash is needed because the Stripe signing secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['STRIPE_API_KEY_SSM_NAME'],
+    Name=os.environ['STRIPE_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
 stripe.api_key = stripe_api_key_parameter['Parameter']['Value']
 
 stripe_test_api_key_parameter = ssm.get_parameter(
-    # A slash is needed because the Stripe signing secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+    Name=os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
 TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']

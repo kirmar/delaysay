@@ -15,23 +15,13 @@ from datetime import datetime, timedelta
 ssm = boto3.client('ssm')
 
 slack_client_id_parameter = ssm.get_parameter(
-    # A slash is needed because the Slack client ID parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['SLACK_CLIENT_ID_SSM_NAME'],
+    Name=os.environ['SLACK_CLIENT_ID_SSM_NAME'],
     WithDecryption=True
 )
 CLIENT_ID = slack_client_id_parameter['Parameter']['Value']
 
 slack_client_secret_parameter = ssm.get_parameter(
-    # A slash is needed because the Slack client secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['SLACK_CLIENT_SECRET_SSM_NAME'],
+    Name=os.environ['SLACK_CLIENT_SECRET_SSM_NAME'],
     WithDecryption=True
 )
 CLIENT_SECRET = slack_client_secret_parameter['Parameter']['Value']

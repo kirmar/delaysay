@@ -105,9 +105,9 @@ Resources:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
-          SLACK_SIGNING_SECRET_SSM_NAME: !Ref SlackSigningSecretSsmName
-          STRIPE_API_KEY_SSM_NAME: !Ref StripeApiKeySsmName
-          STRIPE_TESTING_API_KEY_SSM_NAME: !Ref StripeTestingApiKeySsmName
+          SLACK_SIGNING_SECRET_SSM_NAME: !Sub "/${SlackSigningSecretSsmName}"
+          STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -132,8 +132,8 @@ Resources:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
-          SLACK_CLIENT_ID_SSM_NAME: !Ref SlackClientIdSsmName
-          SLACK_CLIENT_SECRET_SSM_NAME: !Ref SlackClientSecretSsmName
+          SLACK_CLIENT_ID_SSM_NAME: !Sub "/${SlackClientIdSsmName}"
+          SLACK_CLIENT_SECRET_SSM_NAME: !Sub "/${SlackClientSecretSsmName}"
       Events:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -159,9 +159,9 @@ Resources:
       Environment:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
-          STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Ref StripeCheckoutSigningSecretSsmName
-          STRIPE_API_KEY_SSM_NAME: !Ref StripeApiKeySsmName
-          STRIPE_TESTING_API_KEY_SSM_NAME: !Ref StripeTestingApiKeySsmName
+          STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Sub "/${StripeCheckoutSigningSecretSsmName}"
+          STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
       Events:
         DelaySayStripeCheckout:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

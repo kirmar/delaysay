@@ -23,12 +23,7 @@ table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 ssm = boto3.client('ssm')
 
 stripe_signing_secret_parameter = ssm.get_parameter(
-    # A slash is needed because the Stripe signing secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME'],
+    Name=os.environ['STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME'],
     WithDecryption=True
 )
 ENDPOINT_SECRET = stripe_signing_secret_parameter['Parameter']['Value']

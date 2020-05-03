@@ -26,12 +26,7 @@ from random import sample
 
 ssm = boto3.client('ssm')
 slack_signing_secret_parameter = ssm.get_parameter(
-    # A slash is needed because the Slack signing secret parameter
-    # in template.yaml is used for the IAM permission (slash forbidden,
-    # otherwise the permission will have two slashes in a row and the
-    # function won't work) and for accessing the SSM parameter here
-    # (slash needed).
-    Name="/" + os.environ['SLACK_SIGNING_SECRET_SSM_NAME'],
+    Name=os.environ['SLACK_SIGNING_SECRET_SSM_NAME'],
     WithDecryption=True
 )
 SLACK_SIGNING_SECRET = slack_signing_secret_parameter['Parameter']['Value']
