@@ -30,6 +30,9 @@ class Team:
         if 'Item' not in response:
             self.is_in_dynamodb = False
             if alert_if_not_in_dynamodb:
+                # 2020-05-04: For some reason, this wasn't called.
+                # Is 'Item' in response even when the item doesn't
+                # exist in the DynamoDB table?
                 raise TeamNotInDynamoDBError("Unauthorized team: " + self.id)
             else:
                 return
@@ -76,9 +79,12 @@ class Team:
             'enterprise_id': enterprise_id,
             'create_time': create_time.strftime(DATETIME_FORMAT),
             'payment_expiration': trial_expiration.strftime(DATETIME_FORMAT),
-            'payment_plan': "trial"
+            'payment_plan': "trial",
+            'stripe_subscriptions': []
         }
         for key in list(item):
+            if key == 'stripe_subscriptions':
+                continue
             if not item[key]:
                 del item[key]
         self.table.put_item(Item=item)
@@ -99,35 +105,18 @@ class Team:
         self.payment_expiration = self.best_subscription.get_expiration()
         self.payment_plan = self.best_subscription.get_plan_nickname()
         if add_to_dynamodb:
-            if len(self.subscriptions) == 1:
-                self.table.update_item(
-                    Key={
-                        'PK': "TEAM#" + self.id,
-                        'SK': "team"
-                    },
-                    UpdateExpression=
-                        "SET payment_expiration = :val,"
-                        " payment_plan = :val2,"
-                        " stripe_subscriptions = :val3",
-                    ExpressionAttributeValues={
-                        ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
-                        ":val2": self.payment_plan,
-                        ":val3": [subscription_id]
-                    }
-                )
-            else:
-                self.table.update_item(
-                    Key={
-                        'PK': "TEAM#" + self.id,
-                        'SK': "team"
-                    },
-                    UpdateExpression=
-                        "SET payment_expiration = :val,"
-                        " payment_plan = :val2,"
-                        " stripe_subscriptions = list_append(stripe_subscriptions, :val3)",
-                    ExpressionAttributeValues={
-                        ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
-                        ":val2": self.payment_plan,
-                        ":val3": [subscription_id]
-                    }
-                )
+            self.table.update_item(
+                Key={
+                    'PK': "TEAM#" + self.id,
+                    'SK': "team"
+                },
+                UpdateExpression=
+                    "SET payment_expiration = :val,"
+                    " payment_plan = :val2,"
+                    " stripe_subscriptions = list_append(stripe_subscriptions, :val3)",
+                ExpressionAttributeValues={
+                    ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
+                    ":val2": self.payment_plan,
+                    ":val3": [subscription_id]
+                }
+            )
