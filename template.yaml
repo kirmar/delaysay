@@ -52,22 +52,16 @@ Resources:
       StageName: Prod
       EndpointConfiguration: REGIONAL
       Domain:
+        # Note: Any changes to the API domain or Lambda event paths
+        # can take 15 or more minutes to finish updating. Until then,
+        # slash commands may fail with an "http_client_error" and
+        # user auth may fail with "Missing Authentication Token".
+        # If the API domain changes, navigate to the ACM console
+        # and create a Route 53 record as described in README.md
         DomainName: !Ref DelaySayApiDomain
         CertificateArn: !Ref DelaySayApiCertificate
-  DelaySayApiDns:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      Type: A
-      Name: !Ref DelaySayApiDomain
-      # Note: Any changes to the API domain or Lambda event paths
-      # can take 15 or more minutes to finish updating. Until then,
-      # slash commands may fail with an "http_client_error" and
-      # user auth may fail with "Missing Authentication Token".
-      HostedZoneName: !Sub "${DelaySayDomain}."
-      AliasTarget:
-        DNSName: !GetAtt DelaySayApi.DomainName.RegionalDomainName
-        EvaluateTargetHealth: false
-        HostedZoneId: !GetAtt DelaySayApi.DomainName.RegionalHostedZoneId
+        Route53:
+          HostedZoneName: !Sub "${DelaySayDomain}."
   DelaySayTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain

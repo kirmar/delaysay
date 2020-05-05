@@ -102,7 +102,7 @@ Replace the value of $DELAYSAY_DOMAIN_NAME with your website's domain name (exam
 
 For the API domain, choose a path at your website (api.example.com).
 
-Validate the ACM Certificate by creating a DNS record in Route 53:
+Validate the ACM Certificate by creating a DNS record in Route 53 (This must be done again if $DELAYSAY_API_DOMAIN_NAME ever changes.):
 
 - Complete the steps below while you wait for CloudFormation to finish deploying the first time.
 - In the AWS Certificate Manager console, expand the entry with your domain name. Its status should be "Pending validation." Find your domain again and expand it.
