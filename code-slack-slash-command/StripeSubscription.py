@@ -43,7 +43,7 @@ class StripeSubscription:
     
     def is_current(self):
         self._refresh()
-        has_not_expired = (datetime.utcnow() > self.next_expiration)
+        has_not_expired = (datetime.utcnow() < self.next_expiration)
         is_paid = (self.payment_status == "active")
         return has_not_expired and is_paid
     
@@ -63,6 +63,3 @@ class StripeSubscription:
         else:
             self._refresh()
             return self.next_expiration > other.get_expiration()
-    
-    def __eq__(self, other):
-        return self.id == other.id
