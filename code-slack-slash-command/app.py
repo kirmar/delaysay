@@ -30,6 +30,8 @@ slack_signing_secret_parameter = ssm.get_parameter(
 )
 SLACK_SIGNING_SECRET = slack_signing_secret_parameter['Parameter']['Value']
 
+lambda_client = boto3.client('lambda')
+
 
 # When verifying the Slack signing secret:
 # If the timestamp is this old, reject the request.
@@ -400,8 +402,7 @@ def respond_before_timeout(event, context):
     
     params['request_timestamp'] = (
         int(event['multiValueHeaders']['X-Slack-Request-Timestamp'][0]))
-    client = boto3.client('lambda')
-    client.invoke(
+    lambda_client.invoke(
         ClientContext="DelaySay handler",
         FunctionName=context.function_name,
         InvocationType="Event",
