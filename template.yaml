@@ -11,10 +11,10 @@ Globals:
 Parameters:
   DelaySayApiDomain:
     Type: String
-    Description: "Domain name for the DelaySay API"
+    Description: "Domain name for the DelaySay API endpoint (api.example.com)"
   DelaySayDomain:
     Type: String
-    Description: "Domain name for the DelaySay"
+    Description: "Root domain name for DelaySay (example.com)"
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
@@ -53,7 +53,7 @@ Resources:
         # can take 15 or more minutes to finish updating. Until then,
         # slash commands may fail with an "http_client_error" and
         # user auth may fail with "Missing Authentication Token".
-        # If the API domain changes, navigate to the ACM console
+        # Also, if the API domain changes, navigate to the ACM console
         # and create a Route 53 record as described in README.md
         DomainName: !Ref DelaySayApiDomain
         CertificateArn: !Ref DelaySayApiCertificate
