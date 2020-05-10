@@ -426,6 +426,13 @@ def lambda_handler(event, context):
     elif function == "delete":
         print("~~~   DELETER OF SCHEDULED MESSAGE   ~~~")
         return delete_scheduled_message(event)
+    elif event['ssl_check'] == 1:
+        print("~~~   VERIFICATION OF SSL CERTIFICATE   ~~~")
+        verify_slack_signature(
+            request_timestamp=event['headers']['X-Slack-Request-Timestamp'],
+            received_signature=event['headers']['X-Slack-Signature'],
+            request_body=event['body'])
+        return build_response("")
     else:
         print("~~~   FIRST RESPONDER BEFORE TIMEOUT   ~~~")
         verify_slack_signature(
