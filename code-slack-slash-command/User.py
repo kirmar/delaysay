@@ -91,8 +91,9 @@ class User:
             'PK': "USER#" + self.id,
             'SK': "user",
             'token': encrypt_oauth_token(token),
-            'team_id': team_id,
+            'user_id': self.id,
             'team_name': team_name,
+            'team_id': team_id,
             'enterprise_id': enterprise_id,
             'create_time': create_time.strftime(DATETIME_FORMAT)
         }

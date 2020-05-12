@@ -76,6 +76,7 @@ class Team:
             'PK': "TEAM#" + self.id,
             'SK': "team",
             'team_name': team_name,
+            'team_id': self.id,
             'enterprise_id': enterprise_id,
             'create_time': create_time.strftime(DATETIME_FORMAT),
             'payment_expiration': trial_expiration.strftime(DATETIME_FORMAT),
