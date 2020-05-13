@@ -14,7 +14,7 @@ from Team import Team
 from DelaySayExceptions import (
     TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
     TimeToleranceExceededError)
-from datetime import datetime, timedelta
+from datetime import datetime
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])

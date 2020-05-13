@@ -56,7 +56,7 @@ class Team:
     def get_time_till_payment_is_due(self):
         self._refresh(alert_if_not_in_dynamodb=True)
         if self.payment_expiration == "never":
-            return timedelta(years=1000000)
+            return timedelta(weeks=52*100)
         now = datetime.utcnow()
         return self.payment_expiration - now
     
