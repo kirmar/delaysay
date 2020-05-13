@@ -63,7 +63,7 @@ class Team:
     def get_time_payment_has_been_overdue(self):
         self._refresh(alert_if_not_in_dynamodb=True)
         if self.payment_expiration == "never":
-            return 0
+            return timedelta(0)
         now = datetime.utcnow()
         return now - self.payment_expiration
     
