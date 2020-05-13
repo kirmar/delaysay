@@ -19,8 +19,7 @@ class SlashCommandParser:
                 self.command_text.split("say", 1))
         except ValueError:
             raise CommandParseError(
-                self.command_text,
-                f'Cannot parse time and message from "{self.command_text}"')
+                self.command_text, "Cannot parse time and message")
         self.time, self.force_timezone = self._parse_time()
         self.message = self._parse_message()
         self.date_string = None
@@ -48,9 +47,7 @@ class SlashCommandParser:
             }
         )
         if not scheduled_time:
-            raise TimeParseError(
-                self.original_time,
-                f'Cannot parse time "{self.original_time}"')
+            raise TimeParseError(self.original_time, "Cannot parse time")
         force_timezone = bool(scheduled_time.tzinfo)
         if not scheduled_time.tzinfo:
             scheduled_time = scheduled_time.replace(tzinfo=self.user_tz)
@@ -64,9 +61,7 @@ class SlashCommandParser:
                 }
             )
             if not scheduled_time:
-                raise TimeParseError(
-                    self.original_time,
-                    f'Cannot parse time "{self.original_time}"')
+                raise TimeParseError(self.original_time, "Cannot parse time")
             force_timezone = bool(scheduled_time.tzinfo)
             if not scheduled_time.tzinfo:
                scheduled_time = scheduled_time.replace(tzinfo=self.user_tz)
