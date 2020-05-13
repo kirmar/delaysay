@@ -100,11 +100,15 @@ class Team:
         subscription = StripeSubscription(subscription_id)
         self.subscriptions.append(subscription)
         self.best_subscription = max(self.subscriptions)
-        if (self.payment_expiration == "never"
-            or not self.best_subscription.is_current()):
-            return
-        self.payment_expiration = self.best_subscription.get_expiration()
-        self.payment_plan = self.best_subscription.get_plan_nickname()
+        if self.payment_expiration == "never":
+            payment_expiration_as_string = self.payment_expiration
+        elif self.best_subscription.is_current():
+            self.payment_expiration = self.best_subscription.get_expiration()
+            self.payment_plan = self.best_subscription.get_plan_nickname()
+            payment_expiration_as_string = (
+                self.payment_expiration.strftime(DATETIME_FORMAT))
+        else:
+            payment_expiration_as_string = "none"
         if add_to_dynamodb:
             self.table.update_item(
                 Key={
@@ -116,7 +120,7 @@ class Team:
                     " payment_plan = :val2,"
                     " stripe_subscriptions = list_append(stripe_subscriptions, :val3)",
                 ExpressionAttributeValues={
-                    ":val": self.payment_expiration.strftime(DATETIME_FORMAT),
+                    ":val": payment_expiration_as_string,
                     ":val2": self.payment_plan,
                     ":val3": [subscription_id]
                 }
