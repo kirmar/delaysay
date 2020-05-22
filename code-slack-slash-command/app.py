@@ -325,13 +325,14 @@ def parse_and_schedule(params):
     except CommandParseError as err:
         post_and_print_info_and_confirm_success(
             response_url,
-            f'Sorry, I don\'t understand the command "{err.command_text}".\n'
+            "*Sorry, I don't understand. Please try again.*\n"
             + build_help_response(params, user_asked_for_help=False)['body'])
         return
     except TimeParseError as err:
         post_and_print_info_and_confirm_success(
             response_url,
-            f'Sorry, I don\'t understand the time "{err.time_text}".')
+            f'Sorry, I don\'t understand the time "{err.time_text}".'
+            " *Please try again.*")
         return
     
     date = parser.get_date_string_for_slack()
@@ -347,27 +348,23 @@ def parse_and_schedule(params):
             text=message
         )
     except slack.errors.SlackApiError as err:
-        if err.response['error'] == "time_in_past":
+        error_code = err.response['error']
+        if error_code == "time_in_past":
             if unix_timestamp < request_unix_timestamp:
-                apology = "Sorry, I can\'t schedule a message in the past."
+                error_text = "Sorry, I can't schedule a message in the past."
             else:
-                apology = (
-                    "Sorry, I can\'t schedule in the extremely near future.")
-            post_and_print_info_and_confirm_success(response_url, apology)
-            return
-        elif err.response['error'] == "time_too_far":
-            post_and_print_info_and_confirm_success(
-                response_url,
-                "Sorry, I can\'t schedule more than 120 days in the future.")
-            return
-        elif err.response['error'] == "time_too_far":
-            post_and_print_info_and_confirm_success(
-                response_url,
-                "Sorry, your message is too long:"
-                f'\n"{message}"')
-            return
+                error_text = (
+                    "Sorry, I can't schedule in the extremely near future.")
+        elif error_code == "time_too_far":
+            error_text = (
+                "Sorry, I can't schedule more than 120 days in the future.")
+        elif error_code == "msg_too_long":
+            error_text = (
+                f"Sorry, your message is too long: {len(message)} characters.")
         else:
             raise
+        post_and_print_info_and_confirm_success(response_url, error_text)
+        return
     
     text = f'At {time} on {date}, I will post on your behalf: "{message}"'
     if payment_status.startswith("yellow"):
