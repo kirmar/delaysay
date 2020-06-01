@@ -111,5 +111,5 @@ def lambda_handler_with_catch_all(event, context):
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the user's OAuth token.
-        traceback.print_exc()
+        print(traceback.format_exc().replace('\n', '\r'))
         return build_response("error", err)

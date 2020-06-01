@@ -443,19 +443,19 @@ def lambda_handler_with_catch_all(event, context):
     try:
         return lambda_handler(event, context)
     except SlackSignaturesDoNotMatchError:
-        traceback.print_exc()
+        print(traceback.format_exc().replace('\n', '\r'))
         return build_response(
             "Hi, there! I can't respond to your request because it has an"
             " invalid Slack signature. It's a security risk.")
     except SlackSignatureTimeToleranceExceededError:
-        traceback.print_exc()
+        print(traceback.format_exc().replace('\n', '\r'))
         return build_response(
             "Hi, there! I can't respond to your request because it was sent"
             " long ago. It's a security risk.")
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
-        traceback.print_exc()
+        print(traceback.format_exc().replace('\n', '\r'))
         res = (
             "If the error persists, try contacting us at team@delaysay.com")
         if event.get("currentFunctionOfFunction") and "response_url" in event:

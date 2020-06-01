@@ -118,5 +118,5 @@ def lambda_handler_with_catch_all(event, context):
     try:
         return lambda_handler(event, context)
     except Exception as err:
-        traceback.print_exc().replace("\n", "\r")
+        print(traceback.format_exc().replace('\n', '\r'))
         return build_response("error", err)
