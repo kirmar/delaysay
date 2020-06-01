@@ -17,6 +17,35 @@ class Team:
         self.last_updated = 0
         self._refresh()
     
+    def _get_payment_expiration_as_string(self):
+        if isinstance(self.payment_expiration, str):
+            # probably "never"
+            payment_expiration_as_string = self.payment_expiration
+        elif isinstance(self.payment_expiration, datetime):
+            payment_expiration_as_string = (
+                self.payment_expiration.strftime(DATETIME_FORMAT))
+        else:
+            # This shouldn't ever happen, but if it does, I at least
+            # want to know what happened.
+            payment_expiration_as_string = str(self.payment_expiration)
+        return payment_expiration_as_string
+    
+    def _update_payment_plan_and_expiration_in_dynamodb(self, payment_plan,
+                                                        payment_expiration):
+        self.table.update_item(
+            Key={
+                'PK': "TEAM#" + self.id,
+                'SK': "team"
+            },
+            UpdateExpression=
+                "SET payment_expiration = :val,"
+                " payment_plan = :val2",
+            ExpressionAttributeValues={
+                ":val": payment_expiration,
+                ":val2": payment_plan
+            }
+        )
+    
     def _refresh(self, force=False, alert_if_not_in_dynamodb=False):
         if not force and time.time() - self.last_updated < 2:
             return
@@ -47,7 +76,12 @@ class Team:
         self.payment_plan = response['Item']['payment_plan']
         self.subscriptions = []
         for id in response['Item'].get('stripe_subscriptions', []):
+            # 2020-06-01: This should update multiple object attributes,
+            # including self.payment_plan and self.payment_expiration.
             self.add_subscription(id, add_to_dynamodb=False)
+        payment_expiration_as_string = self._get_payment_expiration_as_string()
+        self._update_payment_plan_and_expiration_in_dynamodb(
+            self.payment_plan, payment_expiration_as_string)
     
     def is_trialing(self):
         self._refresh(alert_if_not_in_dynamodb=True)
@@ -55,14 +89,16 @@ class Team:
     
     def get_time_till_payment_is_due(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        if self.payment_expiration == "never":
+        if not isinstance(self.payment_expiration, datetime):
+            # self.payment_expiration probably == "never"
             return timedelta(weeks=52*100)
         now = datetime.utcnow()
         return self.payment_expiration - now
     
     def get_time_payment_has_been_overdue(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        if self.payment_expiration == "never":
+        if not isinstance(self.payment_expiration, datetime):
+            # self.payment_expiration probably == "never"
             return timedelta(0)
         now = datetime.utcnow()
         return now - self.payment_expiration
@@ -100,15 +136,11 @@ class Team:
         subscription = StripeSubscription(subscription_id)
         self.subscriptions.append(subscription)
         self.best_subscription = max(self.subscriptions)
-        if self.payment_expiration == "never":
-            payment_expiration_as_string = self.payment_expiration
-        elif self.best_subscription.is_current():
+        if (isinstance(self.payment_expiration, datetime)
+            and self.best_subscription.is_current()):
             self.payment_expiration = self.best_subscription.get_expiration()
             self.payment_plan = self.best_subscription.get_plan_nickname()
-            payment_expiration_as_string = (
-                self.payment_expiration.strftime(DATETIME_FORMAT))
-        else:
-            payment_expiration_as_string = "none"
+        payment_expiration_as_string = self._get_payment_expiration_as_string()
         if add_to_dynamodb:
             self.table.update_item(
                 Key={
