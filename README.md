@@ -17,12 +17,12 @@ Note: The directions below explain how to create the Slack app using the code in
 
 - sam-cli: <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
 
-- Python 3.7
+- Python 3.8
 
 - Packages
 
     for requirements in code-*/requirements.txt; do
-      python3.7 -m pip install -r $requirements
+      python3.8 -m pip install -r $requirements
     done
 
 ## Deploy AWS stack
