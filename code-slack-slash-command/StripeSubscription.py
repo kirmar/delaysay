@@ -57,9 +57,11 @@ class StripeSubscription:
     
     def __gt__(self, other):
         if self.is_current() and not other.is_current():
-            return False
-        elif other.is_current() and not self.is_current():
+            # Ignore the canceled/expired subscription (other)
             return True
+        elif other.is_current() and not self.is_current():
+            # Ignore the canceled/expired subscription (self)
+            return False
         else:
             self._refresh()
             return self.next_expiration > other.get_expiration()
