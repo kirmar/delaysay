@@ -167,6 +167,7 @@ Verify your email and activate your account.
 Connect Stripe to Lambda:
 
 - Under **"Developers"**, click **"Webhooks"**
+- Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - Click **"Add endpoint"**
 - Paste the URL of your Stripe checkout Lambda's API Gateway endpoint. Check template.yaml if you're not sure of the path.
 - For **"Events to send"**, select "checkout.session.completed"
@@ -177,6 +178,7 @@ Connect Stripe to Lambda:
 Save the Stripe signing signature:
 
 - Under **"Developers"**, click **"Webhooks"**
+- Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - Click **"Reveal live key token"**
 - Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
 
