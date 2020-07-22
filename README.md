@@ -40,6 +40,7 @@ Set environment variables to match your preferences
     export DELAYSAY_API_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
     export DELAYSAY_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
+    export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
     export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
@@ -72,6 +73,7 @@ Deploy the SAM app
         "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
         "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
+        "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
         "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
         "SlackSigningSecretSsmName=$DELAYSAY_SLACK_SIGNING_SECRET" \
@@ -182,9 +184,11 @@ Save the Stripe signing signature:
 - Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - **"Click to reveal"**
 - Save the key in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
+- Toggle on **"View test data"**, then **"Click to reveal"**, and store the key the same way, this time in $DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET (still starting with a slash).
 
 Create pricing plans:
 
+- Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - Click **"Products"**
 - Click **"New"**
     - What kind of product? Recurring products

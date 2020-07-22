@@ -18,6 +18,9 @@ Parameters:
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
+  StripeTestingCheckoutSigningSecretSsmName:
+    Type: String
+    Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret (testing version)"
   StripeApiKeySsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe API key"
@@ -150,6 +153,8 @@ Resources:
         - SSMParameterReadPolicy:
             ParameterName: !Ref StripeCheckoutSigningSecretSsmName
         - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeTestingCheckoutSigningSecretSsmName
+        - SSMParameterReadPolicy:
             ParameterName: !Ref StripeApiKeySsmName
         - SSMParameterReadPolicy:
             ParameterName: !Ref StripeTestingApiKeySsmName
@@ -157,6 +162,7 @@ Resources:
         Variables:
           AUTH_TABLE_NAME: !Ref DelaySayTable
           STRIPE_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Sub "/${StripeCheckoutSigningSecretSsmName}"
+          STRIPE_TESTING_CHECKOUT_SIGNING_SECRET_SSM_NAME: !Sub "/${StripeTestingCheckoutSigningSecretSsmName}"
           STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
           STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
       Events:

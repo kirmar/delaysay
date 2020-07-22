@@ -27,6 +27,11 @@ stripe_signing_secret_parameter = ssm.get_parameter(
 )
 ENDPOINT_SECRET = stripe_signing_secret_parameter['Parameter']['Value']
 
+stripe_test_signing_secret_parameter = ssm.get_parameter(
+    Name=os.environ['STRIPE_TESTING_CHECKOUT_SIGNING_SECRET_SSM_NAME'],
+    WithDecryption=True
+)
+TEST_ENDPOINT_SECRET = stripe_test_signing_secret_parameter['Parameter']['Value']
 
 # If the timestamp is this old, reject the payload.
 # (https://stripe.com/docs/webhooks/signatures#replay-attacks)
@@ -53,22 +58,26 @@ def find_timestamp_and_signature(stripe_signature):
         "\nreceived_signature: " + received_signature)
 
 
-def compute_expected_signature(received_timestamp, payload):
+def compute_expected_signature(received_timestamp, payload, is_live):
     signed_payload = received_timestamp + "." + payload
+    if is_live:
+        secret = ENDPOINT_SECRET
+    else:
+        secret = TEST_ENDPOINT_SECRET
     hash = hmac.new(
-        key=ENDPOINT_SECRET.encode(),
+        key=secret.encode(),
         msg=signed_payload.encode(),
         digestmod=hashlib.sha256)
     expected_signature = hash.hexdigest()
     return expected_signature
 
 
-def verify_stripe_signature(stripe_signature, payload):
+def verify_stripe_signature(stripe_signature, payload, is_live):
     # https://stripe.com/docs/webhooks/signatures#verify-manually
     received_timestamp, received_signature = find_timestamp_and_signature(
         stripe_signature)
     expected_signature = compute_expected_signature(
-        received_timestamp, payload)
+        received_timestamp, payload, is_live)
     if received_signature != expected_signature:
         raise SignaturesDoNotMatchError("Stripe signatures do not match")
     current_timestamp = time.time()
@@ -101,8 +110,11 @@ def build_response(res, err=None):
 
 def lambda_handler(event, context):
     stripe_signature = event['headers']['Stripe-Signature']
-    verify_stripe_signature(stripe_signature, payload=event['body'])
-    object = json.loads(event['body'])['data']['object']
+    payload = event['body']
+    payload_json = json.loads(payload)
+    is_live = payload_json['livemode']
+    verify_stripe_signature(stripe_signature, payload=payload, is_live=is_live)
+    object = payload_json['data']['object']
     team_id = object['client_reference_id']
     plan_name = object['display_items'][0]['plan']['nickname']
     if team_id == "no_team_id_provided":
