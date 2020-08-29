@@ -259,7 +259,9 @@ def build_help_response(params, user_asked_for_help=True):
         " and time, up to 120 days in the future."
         "\nTo see your scheduled messages in this channel or cancel the next"
         " scheduled message, type:"
-        "\n        `/delay list`        or        `/delay delete 1`")
+        "\n        `/delay list`        or        `/delay delete 1`"
+        "\nQuestions? Please reach out at delaysay.com/contact/"
+        " or team@delaysay.com")
     return build_response(res)
 
 
@@ -282,7 +284,9 @@ def parse_and_schedule(params):
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages,"
             " then try again:"
-            "\ndelaysay.com/add/?team=" + team_id)
+            "\ndelaysay.com/add/?team=" + team_id +
+            "\nIf you have any questions, please reach out at"
+            " delaysay.com/contact/ or team@delaysay.com")
         return
     
     if team.is_trialing():
@@ -311,7 +315,8 @@ def parse_and_schedule(params):
             text += " subscription has expired."
         text += ("\nTo continue using DelaySay, *please pay here:*"
                  "\n" + subscribe_url +
-                 "\nIf you have any questions, reach us at team@delaysay.com")
+                 "\nIf you have any questions, please reach out at"
+                 " delaysay.com/contact/ or team@delaysay.com")
         post_and_print_info_and_confirm_success(response_url, text)
         return
     
@@ -375,7 +380,8 @@ def parse_and_schedule(params):
             text += " subscription is expiring."
         text += ("\nTo continue using DelaySay, *please pay here:*"
                  "\n" + subscribe_url +
-                 "\nIf you have any questions, reach us at team@delaysay.com")
+                 "\nIf you have any questions, please reach out at"
+                 " delaysay.com/contact/ or team@delaysay.com")
     post_and_print_info_and_confirm_success(response_url, text)
 
 
