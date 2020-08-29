@@ -463,7 +463,8 @@ def lambda_handler_with_catch_all(event, context):
         # like the message parsed by SlashCommandParser.
         print(traceback.format_exc().replace('\n', '\r'))
         res = (
-            "If the error persists, try contacting us at team@delaysay.com")
+            "\nIf the error persists, feel free to reach out at"
+            " delaysay.com/contact/ or team@delaysay.com"")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             res = (
