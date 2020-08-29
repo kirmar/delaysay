@@ -61,7 +61,11 @@ class Team:
             # self.payment_expiration probably == "never"
             return
         subscriptions = self._load_subscriptions()
-        best_subscription = max(subscriptions)
+        if subscriptions:
+            best_subscription = max(subscriptions)
+        else:
+            # The team is probably in the middle of a trial.
+            return
         if not best_subscription.is_current():
             return
         self.payment_expiration = best_subscription.get_expiration()
