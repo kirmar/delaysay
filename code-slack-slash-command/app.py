@@ -43,13 +43,15 @@ TIME_TOLERANCE_IN_SECONDS = 5 * 60
 TRIAL_WARNING_PERIOD = timedelta(days=2)
 
 # Let the team keep using DelaySay, but warn them to pay soon.
-# Start warning them this long before the payment expires.
-# As of 2020-04-30, timedelta(days=0) means they won't be warned at all.
-SUBSCRIPTION_WARNING_PERIOD = timedelta(days=0)
+# Start warning them this long after the payment expires.
+# As of 2020-09-21, I only warn them after the Stripe subscription is
+# technically expired, because otherwise they may be asked to pay extra
+# when their subscription is already about to automatically charge them.
+SUBSCRIPTION_WARNING_PERIOD = timedelta(days=1)
 
 # Let the team keep using DelaySay, but warn them to pay soon.
 # Stop access to DelaySay this long after their payment/trial expires.
-PAYMENT_GRACE_PERIOD = timedelta(days=1)
+PAYMENT_GRACE_PERIOD = timedelta(days=2)
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -299,7 +301,8 @@ def parse_and_schedule(params):
     else:
         if team.get_time_payment_has_been_overdue() > PAYMENT_GRACE_PERIOD:
             payment_status = "red"
-        elif team.get_time_till_payment_is_due() < SUBSCRIPTION_WARNING_PERIOD:
+        elif (team.get_time_payment_has_been_overdue()
+              > SUBSCRIPTION_WARNING_PERIOD):
             payment_status = "yellow"
         else:
             payment_status = "green"
