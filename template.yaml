@@ -15,9 +15,6 @@ Parameters:
   DelaySayDomain:
     Type: String
     Description: "Root domain name for DelaySay (example.com)"
-  DelaySayInstallationDomain:
-    Type: String
-    Description: "Root domain name for DelaySay installation endpoint (add.example.com)"
   SlackOAuthUrl:
     Type: String
     Description: "Installation URL (slack.com/oauth/authorize...)"
@@ -68,27 +65,6 @@ Resources:
         CertificateArn: !Ref DelaySayApiCertificate
         Route53:
           HostedZoneName: !Sub "${DelaySayDomain}."
-  DelaySayInstallationCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Ref DelaySayInstallationDomain
-      ValidationMethod: DNS
-  DelaySayInstallation:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Prod
-      EndpointConfiguration: REGIONAL
-      Domain:
-        # Note: Any changes to the API domain or Lambda event paths
-        # can take 15 or more minutes to finish updating. Until then,
-        # slash commands may fail with an "http_client_error" and
-        # user auth may fail with "Missing Authentication Token".
-        # Also, if the API domain changes, navigate to the ACM console
-        # and create a Route 53 record as described in README.md
-        DomainName: !Ref DelaySayInstallationDomain
-        CertificateArn: !Ref DelaySayInstallationCertificate
-        Route53:
-          HostedZoneName: !Sub "${DelaySayDomain}."
   DelaySayInstallationFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -102,9 +78,9 @@ Resources:
         DelaySayInstallation:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /
+            Path: /add
             Method: ANY
-            RestApiId: !Ref DelaySayInstallation
+            RestApiId: !Ref DelaySayApi
   DelaySayTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -140,7 +116,7 @@ Resources:
             ParameterName: !Ref StripeTestingApiKeySsmName
       Environment:
         Variables:
-          INSTALLATION_URL: !Ref DelaySayInstallationDomain
+          INSTALLATION_URL: !Sub "https://${DelaySayApiDomain}/add"
           AUTH_TABLE_NAME: !Ref DelaySayTable
           KMS_MASTER_KEY_ARN: !Ref KmsMasterKeyArn
           SLACK_SIGNING_SECRET_SSM_NAME: !Sub "/${SlackSigningSecretSsmName}"
@@ -221,9 +197,6 @@ Outputs:
   DelaySayApi:
     Description: "API Gateway endpoint URL for Prod stage for DelaySay function"
     Value: !Ref DelaySayApiDomain
-  DelaySayInstallation:
-    Description: "API Gateway endpoint URL for DelaySay installation"
-    Value: !Ref DelaySayInstallationDomain
   DelaySayInstallationFunction:
     Description: "DelaySay Slack Installation Lambda Function ARN"
     Value: !GetAtt DelaySayInstallationFunction.Arn

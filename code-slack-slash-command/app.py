@@ -142,7 +142,7 @@ def list_scheduled_messages(params):
             "Sorry, I can't check your scheduled texts because you haven't"
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
-            f"\nhttps://{INSTALLATION_URL}/?team=" + team_id)
+            f"\n{INSTALLATION_URL}/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -194,7 +194,7 @@ def delete_scheduled_message(params):
             "Sorry, your text cannot be canceled because you haven't"
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
-            f"\nhttps://{INSTALLATION_URL}/?team=" + team_id)
+            f"\n{INSTALLATION_URL}/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -288,7 +288,7 @@ def parse_and_schedule(params):
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages,"
             " then try again:"
-            f"\nhttps://{INSTALLATION_URL}/?team=" + team_id +
+            f"\n{INSTALLATION_URL}/?team=" + team_id +
             "\nIf you have any questions, please reach out at"
             " delaysay.com/contact/ or team@delaysay.com")
         return

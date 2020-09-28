@@ -39,8 +39,6 @@ Set environment variables to match your preferences
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_API_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
     export DELAYSAY_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
-    export
-    export DELAYSAY_INSTALLATION_DOMAIN_NAME=PleaseSeeTheSectionOnMovingTheAPIGateway
     export DELAYSAY_SLACK_OAUTH_URL='PleaseSeeTheSectionOnActivatingPublicDistribution'
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
@@ -75,7 +73,6 @@ Deploy the SAM app
       --parameter-overrides \
         "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
         "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
-        "DelaySayInstallationDomain=$DELAYSAY_INSTALLATION_DOMAIN_NAME" \
         "SlackOAuthUrl=$DELAYSAY_SLACK_OAUTH_URL" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
@@ -103,13 +100,11 @@ In your Lambda console, change the function's timeout to 5 minutes. (Just in cas
 In your IAM console, create a policy that allows the action "lambda:InvokeFunction" on your Lambda function's ARN. Attach it to the Lambda's IAM role.
 
 
-## Move the API Gateway endpoints to custom domains
+## Move the API Gateway endpoint to a custom domain
 
 Replace the value of $DELAYSAY_DOMAIN_NAME with your website's domain name (example.com).
 
-For the API domain, choose a path at your website (api.example.com).
-
-Fill $DELAYSAY_API_DOMAIN_NAME with this path (api.example.com).
+For the API domain, choose a path at your website (api.example.com) and put it in $DELAYSAY_API_DOMAIN_NAME.
 
 Validate the ACM Certificate by creating a DNS record in Route 53 (This must be done again if $DELAYSAY_API_DOMAIN_NAME ever changes.):
 
@@ -117,7 +112,6 @@ Validate the ACM Certificate by creating a DNS record in Route 53 (This must be 
 - In the AWS Certificate Manager console, expand the entry with your domain name. Its status should be "Pending validation." Find your domain again and expand it.
 - Click "Create record in Route 53"
 - Click "Create"
-- Repeat these steps with $DELAYSAY_INSTALLATION_DOMAIN_NAME (add.example.com or something similar)
 
 
 ## Configure Slack App
@@ -165,9 +159,9 @@ Under **"Settings"**:
 
 Copy the **"Shareable URL"** to $DELAYSAY_SLACK_OAUTH_URL, keeping single quotes around the URL because it has ampersands in it.
 
-Add **"Embeddable Slack Button"** to your app's website, but replace the URL with your $DELAYSAY_INSTALLATION_DOMAIN_NAME.
+Add **"Embeddable Slack Button"** to your app's website, but replace the URL with https://{$DELAYSAY_API_DOMAIN_NAME}/add/ (like https://api.example.com/add/).
 
-Navigate to **"Installing Your App"** under **"Basic Information"**. Choose **"Install from App Directory"** and fill **"Direct install URL"** with $DELAYSAY_INSTALLATION_DOMAIN_NAME.
+Navigate to **"Installing Your App"** under **"Basic Information"**. Choose **"Install from App Directory"** and fill **"Direct install URL"** with https://{$DELAYSAY_API_DOMAIN_NAME}/add/ (like https://api.example.com/add/).
 
 
 ## Set up payment
