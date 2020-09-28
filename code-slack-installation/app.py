@@ -33,7 +33,6 @@ def lambda_handler(event, context):
 
 def lambda_handler_with_catch_all(event, context):
     try:
-        foo
         return lambda_handler(event, context)
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
