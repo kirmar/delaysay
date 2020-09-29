@@ -1,5 +1,5 @@
 requests
 dateparser
 slackclient
-aws_encryption_sdk
+aws_encryption_sdk==1.4.1
 stripe
