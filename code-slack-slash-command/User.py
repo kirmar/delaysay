@@ -8,8 +8,6 @@ from aws_encryption_sdk import CommitmentPolicy
 from DelaySayExceptions import UserAuthorizeError
 from datetime import timezone, timedelta
 
-os.environ['PYTHONWARNINGS'] = "always"
-
 encryption_client = aws_encryption_sdk.EncryptionSDKClient(
     commitment_policy=CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT
 )
