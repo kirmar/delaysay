@@ -51,6 +51,23 @@ class User:
         self.token = None
         self.timezone = None
     
+    def _reencrypt_token_with_key_commitment(self):
+        token_encrypted_with_key_commitment = encrypt_oauth_token(self.token)
+        self.table.update_item(
+            Key={
+                'PK': "USER#" + self.id,
+                'SK': "user"
+            },
+            UpdateExpression=
+                "SET #t = :val",
+            ExpressionAttributeValues={
+                ":val": token_encrypted_with_key_commitment
+            },
+            ExpressionAttributeNames={
+                "#t": "token"
+            }
+        )
+    
     def get_auth_token(self):
         if not self.token:
             response = self.table.get_item(
@@ -65,8 +82,9 @@ class User:
                 raise UserAuthorizeError("Unauthorized user: " + self.id)
             encrypted_token_as_bytes = encrypted_token_as_boto3_binary.value
             self.token = decrypt_oauth_token(encrypted_token_as_bytes)
+            self._reencrypt_token_with_key_commitment()
         return self.token
-
+    
     def get_timezone(self):
         if not self.timezone:
             r = requests.post(
