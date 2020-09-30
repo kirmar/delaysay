@@ -1,6 +1,10 @@
 import traceback
 import os
 
+# This is the Lambda function that creates a 302 redirect to the Slack
+# installation OAuth URL; this is for the Slack App Directory entry
+# and does not need to be used anywhere else.
+
 SLACK_OAUTH_URL = os.environ['SLACK_OAUTH_URL']
 
 
