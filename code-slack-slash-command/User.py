@@ -11,7 +11,7 @@ from datetime import timezone, timedelta
 os.environ['PYTHONWARNINGS'] = "always"
 
 encryption_client = aws_encryption_sdk.EncryptionSDKClient(
-    commitment_policy=CommitmentPolicy.FORBID_ENCRYPT_ALLOW_DECRYPT
+    commitment_policy=CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT
 )
 kms_key_provider = aws_encryption_sdk.StrictAwsKmsMasterKeyProvider(
     key_ids=[
