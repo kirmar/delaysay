@@ -4,26 +4,34 @@ import requests
 import json
 import os
 import aws_encryption_sdk
+from aws_encryption_sdk import CommitmentPolicy
 from DelaySayExceptions import UserAuthorizeError
 from datetime import timezone, timedelta
 
-kms_key_provider = aws_encryption_sdk.KMSMasterKeyProvider(key_ids=[
-    os.environ['KMS_MASTER_KEY_ARN']
-])
+os.environ['PYTHONWARNINGS'] = "always"
+
+encryption_client = aws_encryption_sdk.EncryptionSDKClient(
+    commitment_policy=CommitmentPolicy.FORBID_ENCRYPT_ALLOW_DECRYPT
+)
+kms_key_provider = aws_encryption_sdk.StrictAwsKmsMasterKeyProvider(
+    key_ids=[
+        os.environ['KMS_MASTER_KEY_ARN']
+    ]
+)
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 def encrypt_oauth_token(token):
     token_as_bytes = token.encode()
-    encrypted_token, encryptor_header = aws_encryption_sdk.encrypt(
+    encrypted_token, encryptor_header = encryption_client.encrypt(
         source=token_as_bytes,
         key_provider=kms_key_provider
     )
     return encrypted_token
 
 def decrypt_oauth_token(encrypted_token):
-    token_as_bytes, decryptor_header = aws_encryption_sdk.decrypt(
+    token_as_bytes, decryptor_header = encryption_client.decrypt(
         source=encrypted_token,
         key_provider=kms_key_provider
     )
