@@ -316,7 +316,7 @@ def parse_and_schedule(params):
             text += " free trial has ended."
         elif payment_status == "red":
             text += " subscription has expired."
-        text += ("\nTo continue using DelaySay, *please pay here:*"
+        text += ("\nTo continue using DelaySay, *please subscribe here:*"
                  "\n" + subscribe_url +
                  "\nIf you have any questions, please reach out at"
                  " delaysay.com/contact/ or team@delaysay.com")
@@ -381,7 +381,7 @@ def parse_and_schedule(params):
             text += " free trial is almost over."
         elif payment_status == "yellow":
             text += " subscription is expiring."
-        text += ("\nTo continue using DelaySay, *please pay here:*"
+        text += ("\nTo continue using DelaySay, *please subscribe here:*"
                  "\n" + subscribe_url +
                  "\nIf you have any questions, please reach out at"
                  " delaysay.com/contact/ or team@delaysay.com")
