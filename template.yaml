@@ -44,6 +44,42 @@ Parameters:
     Description: "KMS key ARN for encrypting Slack users' OAuth tokens"
 
 Resources:
+  
+  # Layers
+  DelaySayLayerExceptions:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: code-class-exceptions/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+  DelaySayLayerStripeSubscription:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: code-class-stripe-subscription/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+  DelaySayLayerTeam:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: code-class-team/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+  DelaySayLayerUser:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: code-class-user/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+  
+  # Website
   DelaySayApiCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -81,6 +117,8 @@ Resources:
             Path: /add
             Method: ANY
             RestApiId: !Ref DelaySayApi
+  
+  # DynamoDB
   DelaySayTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -99,12 +137,19 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       TableName: DelaySay
+  
+  # Lambda functions
   DelaySayFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: code-slack-slash-command/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
+      Layers:
+        - !Ref DelaySayLayerExceptions
+        - !Ref DelaySayLayerStripeSubscription
+        - !Ref DelaySayLayerTeam
+        - !Ref DelaySayLayerUser
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
@@ -134,6 +179,11 @@ Resources:
       CodeUri: code-slack-user-authorization/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
+      Layers:
+        - !Ref DelaySayLayerExceptions
+        - !Ref DelaySayLayerStripeSubscription
+        - !Ref DelaySayLayerTeam
+        - !Ref DelaySayLayerUser
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
@@ -166,6 +216,10 @@ Resources:
       CodeUri: code-slack-stripe-checkout-webhook/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
+      Layers:
+        - !Ref DelaySayLayerExceptions
+        - !Ref DelaySayLayerStripeSubscription
+        - !Ref DelaySayLayerTeam
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable

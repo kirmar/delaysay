@@ -17,6 +17,11 @@ Note: The directions below explain how to create the Slack app using the code in
 
 - sam-cli: <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
 
+- Docker:
+    For Ubuntu 20.04:
+    <https://www.omgubuntu.co.uk/how-to-install-docker-on-ubuntu-20-04/amp>
+    <https://docs.docker.com/engine/install/linux-postinstall/>
+
 - Python 3.8
 
 - Packages
@@ -58,9 +63,9 @@ Create the S3 bucket for SAM deployments
 
 Build and package SAM app
 
-    sam build
+    sam build --use-container
     sam package \
-      --output-template packaged.yaml \
+      --output-template-file packaged.yaml \
       --s3-bucket "$DELAYSAY_DEPLOY_BUCKET"
 
 Deploy the SAM app
