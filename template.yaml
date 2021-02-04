@@ -9,6 +9,9 @@ Globals:
     MemorySize: 1792
 
 Parameters:
+  DelaySayTableName:
+    Type: String
+    Description: "Name for the DelaySay DynamoDB table"
   DelaySayApiDomain:
     Type: String
     Description: "Domain name for the DelaySay API endpoint (api.example.com)"
@@ -136,7 +139,7 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-      TableName: DelaySay
+      TableName: !Ref DelaySayTableName
   
   # Lambda functions
   DelaySayFunction:
