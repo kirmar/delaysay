@@ -48,11 +48,11 @@ Set environment variables to match your preferences
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
     export DELAYSAY_API_DOMAIN_NAME=api.example.com    # a path at your website
-    DELAYSAY_SLACK_OAUTH_URL='See_Step_4'
+    export DELAYSAY_SLACK_OAUTH_URL='See_Step_5'
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
     export DELAYSAY_SLACK_CLIENT_ID=delaysay/slack/client-id
     export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
-    export DELAYSAY_KMS_MASTER_KEY_ARN=See_Step_3
+    export DELAYSAY_KMS_MASTER_KEY_ARN=See_Step_4
     export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
 
 Build and package SAM app
@@ -84,6 +84,29 @@ Deploy the SAM app
         "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
 
 
+## STEP 1: Create Slack App
+
+Create the Slack app:
+
+- Visit https://api.slack.com/apps
+- Click **[Create New App]**
+
+Set up the app's scopes:
+
+- Under **"Features"**, click **"OAuth & Permissions"**
+- Under **"Scopes"**,
+    add these bot token scopes:
+        - chat:write
+        - commands
+    and these user token scopes:
+        - chat:write
+        - users:read
+
+TBD: Other configuration
+
+Navigate to **"App Credentials"** under **"Basic Information"** in your Slack app. Save the Slack signing secret, client id, and client secret in the SSM Parameter Store. Their parameter names should be the values of $DELAYSAY_SLACK_SIGNING_SECRET, $DELAYSAY_SLACK_CLIENT_ID, and $DELAYSAY_SLACK_CLIENT_SECRET.
+
+
 ## STEP 2: Deploy the CloudFormation stack in AWS
 
 Clone the delaysay GitHub repository
@@ -91,8 +114,11 @@ Clone the delaysay GitHub repository
     git clone git@github.com:kirmar/delaysay.git
     cd delaysay
 
+
 Deploy the CloudFormation stack as described above, keeping in mind:
+
 - Some of the environment variables' values will change in the indicated step. But the first time you deploy, leave them as they are.
+
 - After exporting the environment variables and before running the `sam` commands, create the S3 bucket for SAM deployments (actually, this might not be necessary):
 
     aws s3 mb \
@@ -100,6 +126,7 @@ Deploy the CloudFormation stack as described above, keeping in mind:
       s3://$DELAYSAY_DEPLOY_BUCKET
 
 - When you run `sam deploy` the first time, it will eventually pause and wait for you. You must complete Step 2B for it to finish.
+
 
 Get the endpoint URL (It should be at your custom domain, as described in the step below about moving the API Gateway endpoint.)
 TBD: Update the parameter name when it changes
@@ -123,32 +150,10 @@ In your IAM console, create a policy that allows the action "lambda:InvokeFuncti
 Complete this step while you wait for CloudFormation to finish deploying the first time. It must be done again if $DELAYSAY_API_DOMAIN_NAME ever changes.
 
 Validate the ACM Certificate by creating a DNS record in Route 53:
+
 - In the AWS Certificate Manager console, expand the entry with your domain name. Its status should be "Pending validation." Find your domain again and expand it.
 - Click "Create record in Route 53"
 - Click "Create"
-
-
-## STEP 1: Create Slack App
-
-Create the Slack app:
-
-- Visit https://api.slack.com/apps
-- Click **[Create New App]**
-
-TBD: Other configuration
-
-Set up the app's scopes:
-
-- Under **"Features"**, click **"OAuth & Permissions"**
-- Under **"Scopes"**,
-    add these bot token scopes:
-        - chat:write
-        - commands
-    and these user token scopes:
-        - chat:write
-        - users:read
-
-Navigate to **"App Credentials"** under **"Basic Information"** in your Slack app. Save the Slack signing secret, client id, and client secret in the SSM Parameter Store. Their parameter names should be the values of $DELAYSAY_SLACK_SIGNING_SECRET, $DELAYSAY_SLACK_CLIENT_ID, and $DELAYSAY_SLACK_CLIENT_SECRET.
 
 
 ## STEP 3: Finish configuring the Slack app
@@ -181,6 +186,21 @@ Install the app on your workspace:
 - Note: Each individual user who wants to use DelaySay must authorize the app to post messages with their identity.
 
 
+## STEP 4: Create the CMK (custom master key)
+
+In your KMS console, create a new key:
+
+- For the key type, select **"Symmetric"**
+- For the key material origin, select **"KMS"**
+- For the alias, type in the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS
+- For the key administrators, select **"admin"**
+- Allow key administrators to delete this key.
+- For "IAM users and roles that can use the CMK in cryptographic operations," select the roles from DelaySayFunction and DelaySayUserAuthorizationFunction
+- Finish.
+
+Click the alias and copy the ARN to $DELAYSAY_KMS_MASTER_KEY_ARN.
+
+
 ## STEP 5: Activate Public Distribution
 
 Under **"Settings"**:
@@ -211,7 +231,7 @@ Connect Stripe to Lambda:
 - **"Reveal live key token"**
 - Save the signing secret in the SSM Parameter Store. Its parameter name should be the value of $DELAYSAY_STRIPE_API_KEY (but starting with a slash). It should be of type SecureString and encrypted with the KMS Key alias/aws/ssm.
 - Toggle on **"View test data"**, then **"Reveal test key token"**, and store the key the same way, this time in $DELAYSAY_STRIPE_TESTING_API_KEY (still starting with a slash).
-- Also add a hooks.slack.com endpoint??
+- TBD: Also add a hooks.slack.com endpoint?
 
 Save the Stripe signing signature:
 
@@ -245,21 +265,6 @@ If you want to add team members:
 - Click **"Settings"**
 - Under **"Team and Security"**, click **"Team members"**
 - Click **"New user"** and input the team member's information
-
-
-## STEP 4: Create the CMK (custom master key)
-
-In your KMS console, create a new key:
-
-- For the key type, select **"Symmetric"**
-- For the key material origin, select **"KMS"**
-- For the alias, type in the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS
-- For the key administrators, select **"admin"**
-- Allow key administrators to delete this key.
-- For "IAM users and roles that can use the CMK in cryptographic operations," select the roles from DelaySayFunction and DelaySayUserAuthorizationFunction
-- Finish.
-
-Click the alias and copy the ARN to $DELAYSAY_KMS_MASTER_KEY_ARN.
 
 
 ## Cleanup
