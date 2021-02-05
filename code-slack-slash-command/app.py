@@ -17,6 +17,7 @@ from uuid import uuid4
 from urllib.parse import parse_qs
 from User import User
 from Team import Team
+from BillingToken import BillingToken
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
@@ -53,6 +54,10 @@ SUBSCRIPTION_WARNING_PERIOD = timedelta(days=1)
 # Let the team keep using DelaySay, but warn them to pay soon.
 # Stop access to DelaySay this long after their payment/trial expires.
 PAYMENT_GRACE_PERIOD = timedelta(days=2)
+
+# When a user generates a billing URL, let them use it for this long.
+# BILLING_TOKEN_PERIOD = timedelta(days=1)
+BILLING_TOKEN_PERIOD = timedelta(hours=1)
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -233,6 +238,7 @@ def provide_billing_portal(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
+    team_name = params['team_domain'][0]
     response_url = params['response_url'][0]
     command_text = params['text'][0]
     
@@ -281,7 +287,14 @@ def provide_billing_portal(params):
         post_and_print_info_and_confirm_success(response_url, res)
         return
     
-    billing_token = uuid4().hex
+    billing_token = BillingToken(token=uuid4().hex)
+    billing_token.add_to_dynamodb(
+        create_time=datetime.utcnow(),
+        expiration_period=BILLING_TOKEN_PERIOD,
+        team_id=team_id,
+        team_name=team_name,
+        user_id=user_id)
+    
     res = (
         "Here's your billing portal:"
         "\nhttps://api.delaysay.com/billing/?token=" + str(billing_token)

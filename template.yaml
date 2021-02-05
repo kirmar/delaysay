@@ -84,6 +84,14 @@ Resources:
         - python3.8
     Metadata:
       BuildMethod: python3.8
+  DelaySayLayerBillingToken:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: code-class-billing-token/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
   
   # Website
   DelaySayApiCertificate:
@@ -152,10 +160,13 @@ Resources:
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
       Layers:
+        # Note: Only 5 layers/function allowed,
+        # so combine if need to add more classes
         - !Ref DelaySayLayerExceptions
         - !Ref DelaySayLayerStripeSubscription
         - !Ref DelaySayLayerTeam
         - !Ref DelaySayLayerUser
+        - !Ref DelaySayLayerBillingToken
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
