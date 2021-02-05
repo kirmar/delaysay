@@ -40,6 +40,7 @@ class StripeSubscription:
         unix_timestamp = subscription['current_period_end']
         self.next_expiration = datetime.utcfromtimestamp(unix_timestamp)
         self.plan_name = subscription['plan']['nickname']
+        self.customer_id = subscription['customer']
     
     def is_current(self):
         self._refresh()
@@ -54,6 +55,10 @@ class StripeSubscription:
     def get_plan_nickname(self):
         self._refresh()
         return self.plan_name
+    
+    def get_customer_id(self):
+        self._refresh()
+        return self.customer_id
     
     def __gt__(self, other):
         if self.is_current() and not other.is_current():
