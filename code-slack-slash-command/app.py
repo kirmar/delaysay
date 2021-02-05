@@ -228,6 +228,42 @@ def delete_scheduled_message(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
+def provide_billing_portal(params):
+    channel_id = params['channel_id'][0]
+    user_id = params['user_id'][0]
+    team_id = params['team_id'][0]
+    response_url = params['response_url'][0]
+    command_text = params['text'][0]
+    
+    user = User(user_id)
+    
+    try:
+        token = user.get_auth_token()
+    except UserAuthorizeError:
+        post_and_print_info_and_confirm_success(
+            response_url,
+            "Sorry, your text cannot be canceled because you haven't"
+            " authorized DelaySay yet."
+            "\n*Please grant DelaySay permission* to schedule your messages:"
+            "\ndelaysay.com/add/?team=" + team_id)
+        return
+    
+    approved = user.can_manage_billing()
+    if approved:
+        res = (
+            "Here's your billing portal:"
+            "\ndelaysay.com/billing"
+        )
+    else:
+        res = (
+            "You're unfortunately not approved to manage the DelaySay"
+            " billing/subscription for your Slack workspace."
+            "\nPlease ask a workspace admin to try instead."
+        )
+    
+    post_and_print_info_and_confirm_success(response_url, res)
+
+
 def build_response(res):
     return {
         'statusCode': "200",
@@ -403,6 +439,8 @@ def respond_before_timeout(event, context):
         params['currentFunctionOfFunction'] = "list"
     elif command_text_only_letters in ["delete", "cancel", "remove"]:
         params['currentFunctionOfFunction'] = "delete"
+    elif command_text_only_letters in ["billing", "pay", "subscribe"]:
+        params['currentFunctionOfFunction'] = "billing"
     else:
         params['currentFunctionOfFunction'] = "parse/schedule"
     
@@ -432,6 +470,9 @@ def lambda_handler(event, context):
     elif function == "delete":
         print("~~~   DELETER OF SCHEDULED MESSAGE   ~~~")
         return delete_scheduled_message(event)
+    elif function == "billing":
+        print("~~~   BILLING / STRIPE CUSTOMER PORTAL   ~~~")
+        return provide_billing_portal(event)
     elif 'ssl_check' in event and event['ssl_check'] == 1:
         print("~~~   VERIFICATION OF SSL CERTIFICATE   ~~~")
         verify_slack_signature(
