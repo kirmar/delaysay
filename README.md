@@ -134,9 +134,9 @@ Deploy the CloudFormation stack as described above, keeping in mind:
 
 - After exporting the environment variables and before running the `sam` commands, create the S3 bucket for SAM deployments:
 
-    aws s3 mb \
-      --region "$DELAYSAY_REGION" \
-      s3://$DELAYSAY_DEPLOY_BUCKET
+      aws s3 mb \
+        --region "$DELAYSAY_REGION" \
+        s3://$DELAYSAY_DEPLOY_BUCKET
 
 - When you run `sam deploy` the first time, it will eventually pause and wait for you. You must complete Step 2B for it to finish.
 
@@ -291,15 +291,15 @@ Create pricing plans:
 - Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - Click **"Products"**
 - Click **"New"**
-    - What kind of product? Recurring products
-    - Product name: DelaySay Slack app
+    - What kind of product? **"Recurring products"**
+    - Product name: **"DelaySay Slack app"**
     - Leave the unit label and statement descriptor blank (default)
 - Create the product and add a pricing plan:
     - Plan nickname: recurring-1month-earlyadopter
     - Leave the ID, pricing, currency, tiers, and trial period as their defaults
     - For a $5/month plan:
-        - Price per unit: $5.00 per unit
-        - Billing interval: Monthly
+        - Price per unit: **"$5.00 per unit"**
+        - Billing interval: **"Monthly"**
 - Create the pricing plan and click **"Use with Checkout"**
     - Update the success and cancel URLs as needed
     - Make note of the example script for creating a checkout button
