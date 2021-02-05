@@ -297,7 +297,7 @@ def provide_billing_portal(params):
     
     res = (
         "Here's your billing portal:"
-        "\nhttps://api.delaysay.com/billing/?token=" + str(billing_token)
+        "\ndelaysay.com/billing/?token=" + str(billing_token)
     )
     
     post_and_print_info_and_confirm_success(response_url, res)
