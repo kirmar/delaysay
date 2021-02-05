@@ -70,6 +70,7 @@ class Team:
             return
         self.payment_expiration = best_subscription.get_expiration()
         self.payment_plan = best_subscription.get_plan_nickname()
+        self.best_subscription = best_subscription
         self._update_payment_info_in_dynamodb()
     
     def _refresh(self, force=False, alert_if_not_in_dynamodb=False):
@@ -167,3 +168,7 @@ class Team:
                 ":val": [subscription_id]
             }
         )
+    
+    def get_best_subscription(self):
+        self._refresh(alert_if_not_in_dynamodb=True)
+        return self.best_subscription
