@@ -6,6 +6,9 @@ class UserAuthorizeError(Exception):
 class TeamNotInDynamoDBError(Exception):
     pass
 
+class BillingTokenInvalidError(Exception):
+    pass
+
 
 # Slash command exceptions
 
