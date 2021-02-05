@@ -24,6 +24,9 @@ Parameters:
   SlackOAuthUrl:
     Type: String
     Description: "Install URL (slack.com/oauth/authorize...)"
+  BillingPortalFailUrl:
+    Type: String
+    Description: "URL for the page that says the user's billing token is invalid & it can't redirect to the Stripe customer portal"
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
@@ -129,6 +132,37 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /add
+            Method: ANY
+            RestApiId: !Ref DelaySayApi
+  DelaySayBillingRedirectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: code-slack-stripe-customer-portal/
+      Handler: app.lambda_handler_with_catch_all
+      Runtime: python3.8
+      Layers:
+        - !Ref DelaySayLayerExceptions
+        - !Ref DelaySayLayerTeam
+        - !Ref DelaySayLayerStripeSubscription
+        - !Ref DelaySayLayerBillingToken
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DelaySayTable
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeApiKeySsmName
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref StripeTestingApiKeySsmName
+      Environment:
+        Variables:
+          BILLING_PORTAL_FAIL_URL: !Ref BillingPortalFailUrl
+          AUTH_TABLE_NAME: !Ref DelaySayTable
+          STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
+          STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
+      Events:
+        DelaySayBillingRedirect:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /billing
             Method: ANY
             RestApiId: !Ref DelaySayApi
   

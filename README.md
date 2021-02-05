@@ -38,6 +38,7 @@ Set environment variables to match your preferences:
     export AWS_PROFILE=myAWSprofile   # the .aws/config profile you want to use
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_DOMAIN_NAME=example.com     # your website's domain
+    export DELAYSAY_BILLING_PORTAL_FAIL_URL=https://example.com/invalid-billing-url/     # a page on your site that says the provided token is invalid & it can't redirect to the Stripe customer portal
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
@@ -75,6 +76,7 @@ Deploy the SAM app:
         "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
         "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
         "SlackOAuthUrl=$DELAYSAY_SLACK_OAUTH_URL" \
+        "BillingPortalFailUrl=$DELAYSAY_BILLING_PORTAL_FAIL_URL" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
