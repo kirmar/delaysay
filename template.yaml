@@ -5,6 +5,9 @@ Description: DelaySay SAM template
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
+    # Set the timeout to 5 minutes (300 seconds) just in case!
+    # That way the Lambda (hopefully) doesn't silently time out
+    # and leave the user wondering what happened.
     Timeout: 300
     MemorySize: 1792
 
