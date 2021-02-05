@@ -337,6 +337,9 @@ def build_help_response(params, user_asked_for_help=True):
         "\nTo see your scheduled messages in this channel or cancel the next"
         " scheduled message, type:"
         "\n        `/delay list`        or        `/delay delete 1`"
+        "\nIf you're an admin in this Slack workspace, view your payment"
+        " information, invoices, and more in your Stripe customer portal:"
+        "\n        `/delay billing`"
         "\nQuestions? Please reach out at delaysay.com/contact/"
         " or team@delaysay.com")
     return build_response(res)
