@@ -31,9 +31,11 @@ class StripeSubscription:
         if time.time() - self.last_updated < 2:
             return
         self.last_updated = time.time()
+        self.mode = "live"
         try:
             subscription = stripe.Subscription.retrieve(self.id)
         except stripe.error.InvalidRequestError:
+            self.mode = "test"
             subscription = stripe.Subscription.retrieve(
                 self.id, api_key=TEST_MODE_API_KEY)
         self.payment_status = subscription['status']
@@ -59,6 +61,10 @@ class StripeSubscription:
     def get_customer_id(self):
         self._refresh()
         return self.customer_id
+    
+    def is_in_test_mode(self):
+        self._refresh()
+        return self.mode == "test"
     
     def __gt__(self, other):
         if self.is_current() and not other.is_current():
