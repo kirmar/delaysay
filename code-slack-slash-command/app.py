@@ -242,8 +242,8 @@ def provide_billing_portal(params):
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
-            "Sorry, your text cannot be canceled because you haven't"
-            " authorized DelaySay yet."
+            "Sorry, you can't manage your DelaySay billing information"
+            " because you haven't authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
             "\ndelaysay.com/add/?team=" + team_id)
         return
