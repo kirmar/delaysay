@@ -96,10 +96,10 @@ Set up the app's scopes:
 
 - Under **"Features"**, click **"OAuth & Permissions"**
 - Under **"Scopes"**,
-  Bot Token Scopes:
+  - Bot Token Scopes:
     - chat:write
     - commands
-  User Token Scopes:
+  - User Token Scopes:
     - chat:write
     - users:read
 
