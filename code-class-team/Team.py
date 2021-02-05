@@ -18,8 +18,7 @@ class Team:
         self._refresh()
     
     def _get_payment_expiration_as_string(self):
-        if isinstance(self.payment_expiration, str):
-            # probably "never"
+        if self.never_expires():
             payment_expiration_as_string = self.payment_expiration
         elif isinstance(self.payment_expiration, datetime):
             payment_expiration_as_string = (
@@ -57,8 +56,7 @@ class Team:
         # Note as of 2020-05-02: The "best_subscription" is the one that
         # expires latest or, if all others are expired/canceled, the only
         # active subscription.
-        if not isinstance(self.payment_expiration, datetime):
-            # self.payment_expiration probably == "never"
+        if self.never_expires():
             return
         subscriptions = self._load_subscriptions()
         if subscriptions:
@@ -74,6 +72,10 @@ class Team:
         self._update_payment_info_in_dynamodb()
     
     def _refresh(self, force=False, alert_if_not_in_dynamodb=False):
+        # Careful with this function!! Some of the functions
+        # that call it are called (directly or indirectly)
+        # by it, like get_time_payment_has_been_overdue()
+        # and also never_expires().
         if not force and time.time() - self.last_updated < 2:
             return
         self.last_updated = time.time()
@@ -109,18 +111,23 @@ class Team:
         self._refresh(alert_if_not_in_dynamodb=True)
         return self.payment_plan == "trial"
     
-    def get_time_till_payment_is_due(self):
+    def never_expires(self):
         self._refresh(alert_if_not_in_dynamodb=True)
         if not isinstance(self.payment_expiration, datetime):
-            # self.payment_expiration probably == "never"
+            # The expiration is probably "never".
+            return True
+        return False
+    
+    def get_time_till_payment_is_due(self):
+        self._refresh(alert_if_not_in_dynamodb=True)
+        if self.never_expires():
             return timedelta(weeks=52*100)
         now = datetime.utcnow()
         return self.payment_expiration - now
     
     def get_time_payment_has_been_overdue(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        if not isinstance(self.payment_expiration, datetime):
-            # self.payment_expiration probably == "never"
+        if self.never_expires():
             return timedelta(0)
         now = datetime.utcnow()
         return now - self.payment_expiration
@@ -171,4 +178,5 @@ class Team:
     
     def get_best_subscription(self):
         self._refresh(alert_if_not_in_dynamodb=True)
+        self._update_payment_info()
         return self.best_subscription
