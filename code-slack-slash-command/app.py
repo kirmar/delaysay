@@ -410,7 +410,9 @@ def parse_and_schedule(params):
         post_and_print_info_and_confirm_success(response_url, error_text)
         return
     
-    text = f'At {time} on {date}, I will post on your behalf: "{message}"'
+    text = (
+        f'At {time} on {date}, I will post on your behalf:'
+        f'\n{message}'.replace("\n", "\n> "))
     if payment_status.startswith("yellow"):
         text += "\n\nWe hope you're enjoying DelaySay! Your workspace's"
         if payment_status == "yellow trial":
@@ -453,10 +455,14 @@ def respond_before_timeout(event, context):
         Payload=json.dumps(params)
     )
     
+    user_command = f"{command} {command_text}"
+    if "\n" in user_command:
+        user_command = f"```{user_command}```"
+    else:
+        user_command = f"`{user_command}`"
     return build_response(
         f"Hi, <@{user_id}>! Give me a moment to parse your request:"
-        f"\n```{command} {command_text}```"
-    )
+        f"\n{user_command}")
 
 
 def lambda_handler(event, context):
