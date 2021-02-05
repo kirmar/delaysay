@@ -84,6 +84,11 @@ def lambda_handler(event, context):
     if query_string_parameters:
         token = query_string_parameters.get("token")
     else:
+        # Maybe remove this, since it could print sensitive information,
+        # like the user's OAuth token.
+        print(
+            f"Redirecting to {BILLING_PORTAL_FAIL_URL} because:"
+            "\rNo query string parameters")
         return redirect_because_invalid_token()
     
     try:
