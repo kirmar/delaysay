@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import time
 import re
+from uuid import uuid4
 from urllib.parse import parse_qs
 from User import User
 from Team import Team
@@ -280,9 +281,10 @@ def provide_billing_portal(params):
         post_and_print_info_and_confirm_success(response_url, res)
         return
     
+    billing_token = uuid4().hex
     res = (
         "Here's your billing portal:"
-        "\nhttps://api.delaysay.com/billing"
+        "\nhttps://api.delaysay.com/billing/?token=" + str(billing_token)
     )
     
     post_and_print_info_and_confirm_success(response_url, res)
