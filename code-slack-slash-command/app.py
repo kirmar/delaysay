@@ -417,7 +417,7 @@ def respond_before_timeout(event, context):
     
     return build_response(
         f"Hi, <@{user_id}>! Give me a moment to parse your request:"
-        f"\n`{command} {command_text}`"
+        f"\n```{command} {command_text}```"
     )
 
 
