@@ -236,6 +236,7 @@ def provide_billing_portal(params):
     command_text = params['text'][0]
     
     user = User(user_id)
+    team = Team(team_id)
     
     try:
         token = user.get_auth_token()
@@ -248,18 +249,41 @@ def provide_billing_portal(params):
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
-    approved = user.can_manage_billing()
-    if approved:
+    if team.is_trialing():
         res = (
-            "Here's your billing portal:"
-            "\ndelaysay.com/billing"
+            "Your team is currently on a free trial."
+            "\nAfter you subscribe, check back here to manage your DelaySay"
+            " billing information."
+            # TODO: Add the trial expiration date
         )
-    else:
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
+    
+    if team.never_expires():
         res = (
-            "You're unfortunately not approved to manage the DelaySay"
-            " billing/subscription for your Slack workspace."
+            "Congrats! Your team currently has free access to DelaySay."
+            "\nIf you subscribe in the future, check back here to manage your"
+            " DelaySay billing information."
+        )
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
+    
+    # TODO: Implement a response for when I manually input a payment
+    # expiration date, but the team has no Stripe subscription yet.
+    
+    if not user.can_manage_billing():
+        res = (
+            "You're not authorized to manage your workspace's DelaySay"
+            " subscription and billing information."
             "\nPlease ask a workspace admin to try instead."
         )
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
+    
+    res = (
+        "Here's your billing portal:"
+        "\nhttps://api.delaysay.com/billing"
+    )
     
     post_and_print_info_and_confirm_success(response_url, res)
 
