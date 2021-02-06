@@ -56,7 +56,6 @@ SUBSCRIPTION_WARNING_PERIOD = timedelta(days=1)
 PAYMENT_GRACE_PERIOD = timedelta(days=2)
 
 # When a user generates a billing URL, let them use it for this long.
-# BILLING_TOKEN_PERIOD = timedelta(days=1)
 BILLING_TOKEN_PERIOD = timedelta(hours=1)
 
 # This is the format used to log dates in the DynamoDB table.
