@@ -161,6 +161,15 @@ class User:
             self._update_billing_role_in_dynamodb(self.billing_role)
         return self.billing_role
     
+    def is_in_dynamodb(self):
+        response = self.table.get_item(
+            Key={
+                'PK': "USER#" + self.id,
+                'SK': "user"
+            }
+        )
+        return ('Item' in response)
+    
     def get_auth_token(self):
         if not self.token:
             response = self.table.get_item(
@@ -220,3 +229,6 @@ class User:
                 del item[key]
         self.table.put_item(Item=item)
         self._reset()
+    
+    def __eq__(self, other):
+        return (self.id == other.id)
