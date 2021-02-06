@@ -130,14 +130,12 @@ class User:
     
     def _get_and_update_billing_role(self):
         if not self.billing_role:
-            billing_role = self._get_billing_role_from_dynamodb()
             is_admin = self._is_slack_admin()
-            if not billing_role or (is_admin and billing_role != "admin"):
-                if is_admin:
-                    billing_role = "admin"
-                else:
+            if not is_admin:
+                billing_role = self._get_billing_role_from_dynamodb()
+                if not billing_role:
                     billing_role = "no approval"
-                self._update_billing_role_in_dynamodb(billing_role)
+            self._update_billing_role_in_dynamodb(billing_role)
             self.billing_role = billing_role
         return self.billing_role
     
