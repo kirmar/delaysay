@@ -235,12 +235,10 @@ def delete_scheduled_message(params):
 
 
 def provide_billing_portal(params):
-    channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
     team_name = params['team_domain'][0]
     response_url = params['response_url'][0]
-    command_text = params['text'][0]
     
     user = User(user_id)
     team = Team(team_id)
