@@ -82,7 +82,7 @@ class User:
             }
         )
     
-    def _is_slack_admin(self):
+    def is_slack_admin(self):
         if not self.is_admin:
             self.token = self.get_auth_token()
             r = requests.post(
@@ -101,7 +101,7 @@ class User:
             user_object = json.loads(r.content)
             if not user_object['ok']:
                 raise Exception(
-                    "User._is_admin() failed: " + user_object['error'] +
+                    "User.is_slack_admin() failed: " + user_object['error'] +
                     "\nFor more information, see here:"
                     "\nhttps://api.slack.com/methods/users.info")
             self.is_admin = user_object['user']['is_admin']
@@ -130,7 +130,7 @@ class User:
     
     def _get_and_update_billing_role(self):
         if not self.billing_role:
-            is_admin = self._is_slack_admin()
+            is_admin = self.is_slack_admin()
             if not is_admin:
                 billing_role = self._get_billing_role_from_dynamodb()
                 if not billing_role:
@@ -144,6 +144,20 @@ class User:
         if billing_role in ["admin", "approved"]:
             return True
         return False
+    
+    def approve_to_manage_billing(self):
+        billing_role = self._get_and_update_billing_role()
+        if billing_role not in ["admin", "approved"]:
+            self.billing_role = "approved"
+            self._update_billing_role_in_dynamodb(self.billing_role)
+        return self.billing_role
+    
+    def disapprove_to_manage_billing(self):
+        billing_role = self._get_and_update_billing_role()
+        if billing_role == "approved":
+            self.billing_role = "no approval"
+            self._update_billing_role_in_dynamodb(self.billing_role)
+        return self.billing_role
     
     def get_auth_token(self):
         if not self.token:
