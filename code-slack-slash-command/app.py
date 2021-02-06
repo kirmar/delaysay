@@ -233,6 +233,115 @@ def delete_scheduled_message(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
+def parse_option_and_user(command_text):
+    try:
+        command, option, user_info = command_text.split()
+    except ValueError:
+        try:
+            command, option = command_text.split()
+        except:
+            command = command_text
+            option = None
+        user_info = None
+    
+    if command not in ["billing", "pay", "subscribe"]:
+        option = None
+    if option not in ["authorize", "remove"]:
+        option = None
+        user_id = None
+        user = None
+    elif user_info == None:
+        user_id = None
+        user = None
+    else:
+        # Format: <@W123|username_like_string>
+        # According to: https://api.slack.com/changelog/2017-09-the-one-about-usernames
+        user_id = user_info.lstrip("<@").split("|")[0]
+        user = User(user_id)
+        if not user.is_in_dynamodb():
+            user = None
+    return (option, user_id, user)
+
+
+def write_message_and_add_or_remove_billing_role(option, user, user_id,
+                                                 other_user, other_user_id,
+                                                 billing_info):
+    assert option in ["authorize", "remove"]
+    if not user.is_slack_admin():
+        res = (
+            "Because you're not an admin in this Slack workspace, you"
+            f" cannot control which users manage {billing_info}."
+            "\nPlease ask a *workspace admin* to try instead."
+        )
+    elif option == "authorize" and not other_user_id:
+        res = (
+            "Please @mention a specific user to allow them to manage"
+            f" {billing_info}."
+        )
+    elif option == "remove" and not other_user_id:
+        res = (
+            "Please @mention a specific user to remove their ability to manage"
+            f" {billing_info}."
+        )
+    elif option and not other_user:
+        res = (
+            f"<@{other_user_id}> (member ID: `{other_user_id}`) is not an"
+            " authorized DelaySay user."
+        )
+    elif option and user == other_user:
+        res = (
+            "You are an admin on this workspace, so you are"
+            f" automatically authorized to manage {billing_info}."
+        )
+        if option == "remove":
+            res += "\nYou cannot remove your own access."
+    elif option == "authorize":
+        if other_user.can_manage_billing():
+            res = (
+                f"<@{other_user_id}> is already authorized to manage"
+                f" {billing_info}, so you're all set."
+            )
+            if not other_user.is_slack_admin(): # need to test
+                res += (
+                    "\nYou can remove their access by typing:"
+                    f"\n        `/delay billing remove <@{other_user_id}>`"
+                )
+        else:
+            new_role = other_user.approve_to_manage_billing()
+            assert new_role == "approved"
+            res = (
+                f"<@{other_user_id}> is now authorized to manage"
+                f" {billing_info}."
+                "\nYou can remove their access by typing:"
+                f"\n        `/delay billing remove <@{other_user_id}>`"
+            )
+    elif option == "remove":
+        if other_user.is_slack_admin():
+            res = (
+                f"<@{other_user_id}> is an admin on this workspace, like"
+                " you, so they are automatically authorized to manage"
+                f" {billing_info}."
+                "\nYou cannot remove their access."
+            )
+        elif not other_user.can_manage_billing(): # need to test
+            res = (
+                f"<@{other_user_id}> is not currently authorized to manage"
+                f" {billing_info}, so you're all set."
+                "\nIf you want, you can authorize them by typing:"
+                f"\n        `/delay billing authorize <@{other_user_id}>`"
+            )
+        else: # need to test
+            new_role = other_user.disapprove_to_manage_billing()
+            assert new_role == "no approval"
+            res = (
+                f"Thanks! <@{other_user_id}> is no longer authorized to"
+                f" manage {billing_info}."
+                "\nIf you want, you can authorize them again by typing:"
+                f"\n        `/delay billing authorize <@{other_user_id}>`"
+            )
+    return res
+
+
 def write_billing_portal_message(user_id, team_id, team_name, response_url):
     billing_token = BillingToken(token=uuid4().hex)
     billing_token.add_to_dynamodb(
@@ -256,6 +365,7 @@ def respond_to_billing_request(params):
     team_id = params['team_id'][0]
     team_name = params['team_domain'][0]
     response_url = params['response_url'][0]
+    command_text = params['text'][0]
     
     user = User(user_id)
     team = Team(team_id)
@@ -273,7 +383,11 @@ def respond_to_billing_request(params):
     
     billing_info = (
         "your workspace's DelaySay subscription and billing information")
-    if team.is_trialing():
+    option, other_user_id, other_user = parse_option_and_user(command_text)
+    if option:
+        res = write_message_and_add_or_remove_billing_role(
+            option, user, user_id, other_user, other_user_id, billing_info)
+    elif team.is_trialing():
         res = (
             "Your team is currently on a free trial."
             f"\nAfter you subscribe, check back here to manage {billing_info}."
@@ -289,6 +403,8 @@ def respond_to_billing_request(params):
         res = (
             f"You're not authorized to manage {billing_info}."
             "\nPlease ask a *workspace admin* to try instead."
+            "\nAn admin can also decide to give you access by typing this:"
+            f"\n        `/delay billing authorize <@{user_id}>`"
         )
     elif False:
         # TODO: Implement a response for when I manually input a payment
@@ -339,6 +455,8 @@ def build_help_response(params, user_asked_for_help=True):
         " invoices, update your payment information, and more in your Stripe"
         " customer portal:"
         "\n        `/delay billing`"
+        "\nAdmins can also give another user access by typing this:"
+        f"\n        `/delay billing authorize @username`"
         "\nQuestions? Please reach out at delaysay.com/contact/"
         " or team@delaysay.com")
     return build_response(res)
@@ -482,7 +600,9 @@ def respond_before_timeout(event, context):
         params['currentFunctionOfFunction'] = "list"
     elif command_text_only_letters in ["delete", "cancel", "remove"]:
         params['currentFunctionOfFunction'] = "delete"
-    elif command_text_only_letters in ["billing", "pay", "subscribe"]:
+    elif (command_text_only_letters.startswith("billing")
+          or command_text_only_letters.startswith("pay")
+          or command_text_only_letters.startswith("subscribe")):
         params['currentFunctionOfFunction'] = "billing"
     else:
         params['currentFunctionOfFunction'] = "parse/schedule"
