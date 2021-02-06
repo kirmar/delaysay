@@ -296,8 +296,10 @@ def provide_billing_portal(params):
         user_id=user_id)
     
     res = (
-        "Here's your billing portal:"
+        "Here's your Stripe customer portal:"
         "\ndelaysay.com/billing/?token=" + str(billing_token)
+        + "\nIn your billing portal, you can add credit cards, view past"
+        " invoices, and manage your DelaySay subscription."
     )
     
     post_and_print_info_and_confirm_success(response_url, res)
