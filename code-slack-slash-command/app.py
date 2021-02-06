@@ -233,7 +233,25 @@ def delete_scheduled_message(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
-def provide_billing_portal(params):
+def write_billing_portal_message(user_id, team_id, team_name, response_url):
+    billing_token = BillingToken(token=uuid4().hex)
+    billing_token.add_to_dynamodb(
+        create_time=datetime.utcnow(),
+        expiration_period=BILLING_TOKEN_PERIOD,
+        team_id=team_id,
+        team_name=team_name,
+        user_id=user_id)
+    
+    res = (
+        "Here's your Stripe customer portal:"
+        "\ndelaysay.com/billing/?token=" + str(billing_token)
+        + "\nIn your billing portal, you can add credit cards, view past"
+        " invoices, and manage your DelaySay subscription."
+    )
+    return res
+
+
+def respond_to_billing_request(params):
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
     team_name = params['team_domain'][0]
@@ -253,51 +271,32 @@ def provide_billing_portal(params):
             "\ndelaysay.com/add/?team=" + team_id)
         return
     
+    billing_info = (
+        "your workspace's DelaySay subscription and billing information")
     if team.is_trialing():
         res = (
             "Your team is currently on a free trial."
-            "\nAfter you subscribe, check back here to manage your DelaySay"
-            " billing information."
+            f"\nAfter you subscribe, check back here to manage {billing_info}."
             # TODO: Add the trial expiration date
         )
-        post_and_print_info_and_confirm_success(response_url, res)
-        return
-    
-    if team.never_expires():
+    elif team.never_expires():
         res = (
             "Congrats! Your team currently has free access to DelaySay."
-            "\nIf you subscribe in the future, check back here to manage your"
-            " DelaySay billing information."
+            "\nIf you subscribe in the future, check back here to manage"
+            f" {billing_info}."
         )
-        post_and_print_info_and_confirm_success(response_url, res)
-        return
-    
-    # TODO: Implement a response for when I manually input a payment
-    # expiration date, but the team has no Stripe subscription yet.
-    
-    if not user.can_manage_billing():
+    elif not user.can_manage_billing():
         res = (
-            "You're not authorized to manage your workspace's DelaySay"
-            " subscription and billing information."
+            f"You're not authorized to manage {billing_info}."
             "\nPlease ask a *workspace admin* to try instead."
         )
-        post_and_print_info_and_confirm_success(response_url, res)
-        return
-    
-    billing_token = BillingToken(token=uuid4().hex)
-    billing_token.add_to_dynamodb(
-        create_time=datetime.utcnow(),
-        expiration_period=BILLING_TOKEN_PERIOD,
-        team_id=team_id,
-        team_name=team_name,
-        user_id=user_id)
-    
-    res = (
-        "Here's your Stripe customer portal:"
-        "\ndelaysay.com/billing/?token=" + str(billing_token)
-        + "\nIn your billing portal, you can add credit cards, view past"
-        " invoices, and manage your DelaySay subscription."
-    )
+    elif False:
+        # TODO: Implement a response for when I manually input a payment
+        # expiration date, but the team has no Stripe subscription yet.
+        pass
+    else:
+        res = write_billing_portal_message(
+            user_id, team_id, team_name, response_url)
     
     post_and_print_info_and_confirm_success(response_url, res)
 
@@ -520,7 +519,7 @@ def lambda_handler(event, context):
         return delete_scheduled_message(event)
     elif function == "billing":
         print("~~~   BILLING / STRIPE CUSTOMER PORTAL   ~~~")
-        return provide_billing_portal(event)
+        return respond_to_billing_request(event)
     elif 'ssl_check' in event and event['ssl_check'] == 1:
         print("~~~   VERIFICATION OF SSL CERTIFICATE   ~~~")
         verify_slack_signature(
