@@ -224,17 +224,18 @@ def build_help_response(params, user_asked_for_help=True):
         f"\n        `{slash} {two_examples[0]}`"
         f"\n        `{slash} {two_examples[1]}`"
         "\nI will send the message from your username at the specified date"
-        " and time, up to 120 days in the future."
-        "\nTo see your scheduled messages in this channel or cancel the next"
+        " and time, up to 120 days in the future. (Can't schedule messages to"
+        " send in the past yet, sorry!)"
+        "\n\nTo see your scheduled messages in this channel or cancel the next"
         " scheduled message, type:"
         f"\n        `{slash} list`        or        `{slash} delete 1`"
-        "\nIf you're an admin in this Slack workspace, you can view past"
+        "\n\nIf you're an admin in this Slack workspace, you can view past"
         " invoices, update your payment information, and more in your Stripe"
         " customer portal:"
         f"\n        `{slash} billing`"
         "\nAdmins can also give another user access by typing this:"
         f"\n        `{slash} billing authorize @username`"
-        f"\nQuestions? Please reach out at {contact_page} or {support_email}")
+        f"\n\nQuestions? Please reach out at {contact_page} or {support_email}")
     return build_response(res)
 
 
