@@ -175,13 +175,21 @@ def respond_to_billing_request(params):
         res = write_message_and_add_or_remove_billing_role(
             option, user, user_id, other_user, other_user_id, billing_info)
     elif team.is_trialing():
-        res = (
-            "Your team is currently on a free trial."
-            "\nAfter you subscribe, check back here to manage"
-            f" {billing_info}."
-            # TODO: Add the trial expiration date
-        )
-        # TODO: If the trial expired, tell them how to pay
+        if team.get_time_payment_has_been_overdue() > PAYMENT_GRACE_PERIOD:
+            res = (
+                "Your team's free trial has ended."
+                "\nTo continue using DelaySay, *please subscribe here:*"
+                f"\n{subscribe_url}/?team={team_id}"
+                "\nIf you have any questions, please reach out at"
+                f" {contact_page} or {support_email}"
+            )
+        else:
+            res = (
+                "Your team is currently on a free trial."
+                "\nAfter you subscribe, check back here to manage"
+                f" {billing_info}."
+                # TODO: Add the trial expiration date
+            )
     elif team.never_expires():
         res = (
             "Congrats! Your team currently has free access to DelaySay."
