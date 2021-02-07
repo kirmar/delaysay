@@ -26,7 +26,7 @@ from slack_response_util import (
     post_and_print_info_and_confirm_success, build_response)
 from billing_util import (
     parse_option_and_user, write_message_and_add_or_remove_billing_role,
-    write_billing_portal_message)
+    write_billing_portal_message, generate_billing_url)
 from list_and_delete_util import (
     get_scheduled_messages, validate_index_against_scheduled_messages)
 
@@ -242,6 +242,7 @@ def build_help_response(params, user_asked_for_help=True):
 def parse_and_schedule(params):
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
+    team_name = params['team_domain'][0]
     channel_id = params['channel_id'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
@@ -282,16 +283,38 @@ def parse_and_schedule(params):
     subscribe_url = f"{api_domain}/subscribe/?team=" + team_id
     
     if payment_status.startswith("red"):
-        text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"
-                " sent because your workspace's")
+        text = ("\nWe hope you've enjoyed DelaySay! Your *message cannot be"
+                " sent* because your workspace's")
         if payment_status == "red trial":
             text += " free trial has ended."
         elif payment_status == "red":
-            text += " subscription has expired."
-        text += ("\nTo continue using DelaySay, *please subscribe here:*"
-                 "\n" + subscribe_url +
-                 "\nIf you have any questions, please reach out at"
-                 f" {contact_page} or {support_email}")
+            text += " subscription has expired or the last payment failed."
+        # TODO: As of 2021-02-06, if the team's subscription was
+        # cancelled (not failed), the Stripe customer portal will
+        # show payment information but no current plan.
+        # And it will not have a way to add a plan.
+        # So don't offer to send them to the billing portal.
+        # Just have them make a new subscription or contact us.
+        if user.can_manage_billing():
+            url = generate_billing_url(user_id, team_id, team_name)
+            text += (
+                "\n\nTo see why, please *view your Stripe customer portal*:"
+                f"\n{url}"
+            )
+        else:
+            text += (
+                "\n\nTo see why, an admin in your Slack workspace can type this"
+                " to *view your Stripe customer portal*:"
+                f"\n        `{slash} billing`"
+            )
+        text += (
+            "\nIn your billing portal, you can add credit cards, view past"
+            " invoices, and manage your DelaySay subscription."
+            "\n\nOr if you prefer, you can start a new subscription:"
+            "\n" + subscribe_url +
+            "\n\nIf you have any questions or concerns, we'd be happy to chat"
+            f" with you at {contact_page} or {support_email}"
+        )
         post_and_print_info_and_confirm_success(response_url, text)
         return
     
