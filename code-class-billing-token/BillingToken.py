@@ -34,7 +34,7 @@ class BillingToken:
         return self.table_entry
     
     def add_to_dynamodb(self, create_time, expiration_period, team_id,
-                        team_name, user_id):
+                        team_domain, user_id):
         expiration = create_time + expiration_period
         item = {
             'PK': "BILLING#" + self.token,
@@ -43,7 +43,7 @@ class BillingToken:
             'create_time': create_time.strftime(DATETIME_FORMAT),
             'token_expiration': expiration.strftime(DATETIME_FORMAT),
             'team_id': team_id,
-            'team_name': team_name,
+            'team_domain': team_domain,
             'user_id': user_id
         }
         for key in list(item):

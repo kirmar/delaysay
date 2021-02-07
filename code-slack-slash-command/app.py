@@ -149,7 +149,7 @@ def delete_scheduled_message(params):
 def respond_to_billing_request(params):
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
-    team_name = params['team_domain'][0]
+    team_domain = params['team_domain'][0]
     response_url = params['response_url'][0]
     command_text = params['text'][0]
     
@@ -199,7 +199,7 @@ def respond_to_billing_request(params):
         pass
     else:
         res = write_billing_portal_message(
-            user_id, team_id, team_name, response_url)
+            user_id, team_id, team_domain, response_url)
     
     post_and_print_info_and_confirm_success(response_url, res)
 
@@ -242,7 +242,7 @@ def build_help_response(params, user_asked_for_help=True):
 def parse_and_schedule(params):
     user_id = params['user_id'][0]
     team_id = params['team_id'][0]
-    team_name = params['team_domain'][0]
+    team_domain = params['team_domain'][0]
     channel_id = params['channel_id'][0]
     command_text = params['text'][0]
     response_url = params['response_url'][0]
@@ -296,7 +296,7 @@ def parse_and_schedule(params):
         # So don't offer to send them to the billing portal.
         # Just have them make a new subscription or contact us.
         if user.can_manage_billing():
-            url = generate_billing_url(user_id, team_id, team_name)
+            url = generate_billing_url(user_id, team_id, team_domain)
             text += (
                 "\n\nTo see why, please *view your Stripe customer portal*:"
                 f"\n{url}"

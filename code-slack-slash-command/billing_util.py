@@ -121,20 +121,20 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
     return res
 
 
-def generate_billing_url(user_id, team_id, team_name):
+def generate_billing_url(user_id, team_id, team_domain):
     billing_token = BillingToken(token=uuid4().hex)
     billing_token.add_to_dynamodb(
         create_time=datetime.utcnow(),
         expiration_period=BILLING_TOKEN_PERIOD,
         team_id=team_id,
-        team_name=team_name,
+        team_domain=team_domain,
         user_id=user_id)
     url = f"{api_domain}/billing/?token={billing_token}"
     return url
 
 
-def write_billing_portal_message(user_id, team_id, team_name, response_url):
-    url = generate_billing_url(user_id, team_id, team_name)
+def write_billing_portal_message(user_id, team_id, team_domain, response_url):
+    url = generate_billing_url(user_id, team_id, team_domain)
     res = (
         "Here's your Stripe customer portal:"
         f"\n{url}"
