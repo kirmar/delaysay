@@ -52,7 +52,7 @@ class Team:
             }
         )
     
-    def _update_payment_info(self):
+    def _update_payment_info(self, require_current_subscription=True):
         # Note as of 2020-05-02: The "best_subscription" is the one that
         # expires latest or, if all others are expired/canceled, the only
         # active subscription.
@@ -64,12 +64,13 @@ class Team:
         else:
             # The team is probably in the middle of a trial.
             return
-        if not best_subscription.is_current():
+        if not best_subscription.is_current() and require_current_subscription:
             return
         self.payment_expiration = best_subscription.get_expiration()
         self.payment_plan = best_subscription.get_plan_nickname()
         self.best_subscription = best_subscription
-        self._update_payment_info_in_dynamodb()
+        if self.best_subscription.is_current():
+            self._update_payment_info_in_dynamodb()
     
     def _refresh(self, force=False, alert_if_not_in_dynamodb=False):
         # Careful with this function!! Some of the functions
@@ -178,5 +179,5 @@ class Team:
     
     def get_best_subscription(self):
         self._refresh(alert_if_not_in_dynamodb=True)
-        self._update_payment_info()
+        self._update_payment_info(require_current_subscription=False)
         return self.best_subscription
