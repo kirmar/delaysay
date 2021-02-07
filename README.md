@@ -53,6 +53,7 @@ Set environment variables to match your preferences:
     # production or development environment:
     export DELAYSAY_SLASH_COMMAND=/delay
     export DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN=See_Step_0
+    export DELAYSAY_SUBSCRIBE_URL=See_Step_0
     export DELAYSAY_TABLE_NAME=DelaySay
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
@@ -91,6 +92,7 @@ Deploy the SAM app:
         "InstallSuccessUrl=$DELAYSAY_INSTALL_SUCCESS_URL" \
         "InstallCancelUrl=$DELAYSAY_INSTALL_CANCEL_URL" \
         "InstallFailUrl=$DELAYSAY_INSTALL_FAIL_URL" \
+        "SubscribeUrl=$DELAYSAY_SUBSCRIBE_URL" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
@@ -117,6 +119,12 @@ $DELAYSAY_API_DOMAIN_NAME
 - a path at your website where your whole app will be hosted!
 - api.example.com
 - So the Route 53 configuration works, DON'T include "http://" or "https://" and also DON'T end the URL with a slash.
+
+$DELAYSAY_SUBSCRIBE_URL:
+- a page on your website that redirects to a Stripe subscription creation page
+- example.com/subscribe
+- You can use HTTP or HTTPS.
+- DON'T use an ending slash, because the slash command app.py will add in a slash and query string parameter(s) (like the team ID) later on.
 
 $DELAYSAY_CONTACT_PAGE:
 - the contact page on your website
@@ -146,12 +154,11 @@ $DELAYSAY_INSTALL_FAIL_URL:
 - https://example.com/add-failed/
 
 $DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN:
-- a base URL that the slash command can send users to (for API events like /add/?team=abc or /subscribe/?team=abc or /billing/?token=abc)
+- a base URL that the slash command can send users to (for API events like /add/?team=abc or /billing/?token=abc)
 - https://api.example.com
 - DON'T end it with a slash, because the slash command app.py will add in a slash and paths later on.
 - If you're using your $DELAYSAY_API_DOMAIN_NAME, you *must* use HTTPS (NOT just api.example.com and NOT http://api.example.com).
 - If you're using a link that redirects to your API (again, using HTTPS), then your link can be HTTP or HTTPS. If you do this, be sure to pass along query string parameters to your API though!
-
 
 
 ## STEP 1: Create the Slack App

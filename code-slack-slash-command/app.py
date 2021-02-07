@@ -37,6 +37,7 @@ slash = os.environ['SLASH_COMMAND']
 api_domain = os.environ['SLASH_COMMAND_LINKS_DOMAIN']
 contact_page = os.environ['CONTACT_PAGE']
 support_email = os.environ['SUPPORT_EMAIL']
+subscribe_url = os.environ['SUBSCRIBE_URL']
 
 
 # Let the team try DelaySay without paying.
@@ -180,6 +181,7 @@ def respond_to_billing_request(params):
             f" {billing_info}."
             # TODO: Add the trial expiration date
         )
+        # TODO: If the trial expired, tell them how to pay
     elif team.never_expires():
         res = (
             "Congrats! Your team currently has free access to DelaySay."
@@ -280,7 +282,7 @@ def parse_and_schedule(params):
         else:
             payment_status = "green"
     
-    subscribe_url = f"{api_domain}/subscribe/?team=" + team_id
+    subscribe_url_with_team_id = f"{subscribe_url}/?team={team_id}"
     
     if payment_status.startswith("red"):
         text = ("\nWe hope you've enjoyed DelaySay! Your *message cannot be"
@@ -289,7 +291,7 @@ def parse_and_schedule(params):
             text += (
                 " free trial has ended."
                 "\nTo continue using DelaySay, *please subscribe here:*"
-                "\n" + subscribe_url +
+                "\n" + subscribe_url_with_team_id +
                 "\nIf you have any questions, please reach out at"
                 f" {contact_page} or {support_email}"
             )
@@ -318,7 +320,7 @@ def parse_and_schedule(params):
                 "\nIn your billing portal, you can add credit cards, view past"
                 " invoices, and manage your DelaySay subscription."
                 "\n\nOr if you prefer, you can start a new subscription:"
-                "\n" + subscribe_url +
+                "\n" + subscribe_url_with_team_id +
                 "\n\nIf you have any questions or concerns, we'd be happy to"
                 f" chat with you at {contact_page} or {support_email}"
             )
@@ -388,7 +390,7 @@ def parse_and_schedule(params):
         elif payment_status == "yellow":
             text += " subscription is expiring."
         text += ("\nTo continue using DelaySay, *please subscribe here:*"
-                 "\n" + subscribe_url +
+                 "\n" + subscribe_url_with_team_id +
                  "\nIf you have any questions, please reach out at"
                  f" {contact_page} or {support_email}")
     post_and_print_info_and_confirm_success(response_url, text)

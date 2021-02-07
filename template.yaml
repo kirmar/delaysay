@@ -36,6 +36,7 @@ Parameters:
   SlackOAuthUrl:
     Type: String
     Description: "Install URL (slack.com/oauth/authorize...)"
+  
   BillingPortalFailUrl:
     Type: String
     Description: "Apology page for invalid/expired billing tokens"
@@ -48,6 +49,10 @@ Parameters:
   InstallFailUrl:
     Type: String
     Description: "Apology page for failed installation"
+  SubscribeUrl:
+    Type: String
+    Description: "Page that redirects user to Stripe checkout"
+  
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
@@ -241,6 +246,7 @@ Resources:
           STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
           SLASH_COMMAND: !Ref SlashCommand
           SLASH_COMMAND_LINKS_DOMAIN: !Ref SlashCommandLinksDomain
+          SUBSCRIBE_URL: !Ref SubscribeUrl
           CONTACT_PAGE: !Ref ContactPage
           SUPPORT_EMAIL: !Ref SupportEmail
       Events:
