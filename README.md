@@ -45,7 +45,6 @@ Set environment variables to match your preferences:
     export DELAYSAY_INSTALL_CANCEL_URL=See_Step_0
     export DELAYSAY_INSTALL_FAIL_URL=See_Step_0
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
-    export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
     export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
     
@@ -60,6 +59,7 @@ Set environment variables to match your preferences:
     export DELAYSAY_API_DOMAIN_NAME=See_Step_0
     export DELAYSAY_SLACK_OAUTH_URL='See_Step_3'
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
+    export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
     export DELAYSAY_SLACK_CLIENT_ID=delaysay/slack/client-id
     export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
     export DELAYSAY_KMS_MASTER_KEY_ARN=See_Step_4
