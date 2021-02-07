@@ -176,10 +176,10 @@ def respond_to_billing_request(params):
     elif team.is_trialing():
         res = (
             "Your team is currently on a free trial."
-            f"\nAfter you subscribe, check back here to manage {billing_info}."
+            "\nAfter you subscribe, check back here to manage"
+            f" {billing_info}."
             # TODO: Add the trial expiration date
         )
-        # TODO: If the trial expired, tell them how to pay.
     elif team.never_expires():
         res = (
             "Congrats! Your team currently has free access to DelaySay."
@@ -286,37 +286,46 @@ def parse_and_schedule(params):
         text = ("\nWe hope you've enjoyed DelaySay! Your *message cannot be"
                 " sent* because your workspace's")
         if payment_status == "red trial":
-            text += " free trial has ended."
-        elif payment_status == "red":
-            text += " subscription has expired or the last payment failed."
-        # TODO: As of 2021-02-06, if the team's subscription was
-        # cancelled (not failed), the Stripe customer portal will
-        # show payment information but no current plan.
-        # And it will not have a way to add a plan.
-        # So don't offer to send them to the billing portal.
-        # Just have them make a new subscription or contact us.
-        if user.can_manage_billing():
-            url = generate_billing_url(user_id, team_id, team_domain)
             text += (
-                "\n\nTo see why, please *view your Stripe customer portal*:"
-                f"\n{url}"
+                " free trial has ended."
+                "\nTo continue using DelaySay, *please subscribe here:*"
+                "\n" + subscribe_url +
+                "\nIf you have any questions, please reach out at"
+                f" {contact_page} or {support_email}"
             )
         else:
+            text += " subscription has expired or the last payment failed."
+            # TODO: As of 2021-02-06, if the team's subscription was
+            # cancelled (not failed), the Stripe customer portal will
+            # show payment information but no current plan.
+            # And it will not have a way to add a plan.
+            # So don't offer to send them to the billing portal.
+            # Just have them make a new subscription or contact us.
+            if user.can_manage_billing():
+                url = generate_billing_url(user_id, team_id, team_domain)
+                text += (
+                    "\n\nTo see why, please *view your Stripe customer"
+                    " portal*:"
+                    f"\n{url}"
+                )
+            else:
+                text += (
+                    "\n\nTo see why, an admin in your Slack workspace can type"
+                    " this to *view your Stripe customer portal*:"
+                    f"\n        `{slash} billing`"
+                )
             text += (
-                "\n\nTo see why, an admin in your Slack workspace can type this"
-                " to *view your Stripe customer portal*:"
-                f"\n        `{slash} billing`"
+                "\nIn your billing portal, you can add credit cards, view past"
+                " invoices, and manage your DelaySay subscription."
+                "\n\nOr if you prefer, you can start a new subscription:"
+                "\n" + subscribe_url +
+                "\n\nIf you have any questions or concerns, we'd be happy to"
+                f" chat with you at {contact_page} or {support_email}"
             )
-        text += (
-            "\nIn your billing portal, you can add credit cards, view past"
-            " invoices, and manage your DelaySay subscription."
-            "\n\nOr if you prefer, you can start a new subscription:"
-            "\n" + subscribe_url +
-            "\n\nIf you have any questions or concerns, we'd be happy to chat"
-            f" with you at {contact_page} or {support_email}"
-        )
+        
         post_and_print_info_and_confirm_success(response_url, text)
         return
+    # fi payment_status.startswith("red")
     
     request_unix_timestamp = params['request_timestamp']
     
