@@ -37,8 +37,13 @@ Set environment variables to match your preferences:
     
     export AWS_PROFILE=myAWSprofile   # the .aws/config profile you want to use
     export DELAYSAY_REGION=us-east-1
-    export DELAYSAY_DOMAIN_NAME=example.com     # your website's domain
-    export DELAYSAY_BILLING_PORTAL_FAIL_URL=https://example.com/invalid-billing-url/     # a page on your site that says the provided token is invalid & it can't redirect to the Stripe customer portal
+    export DELAYSAY_DOMAIN_NAME=See_Step_0
+    export DELAYSAY_CONTACT_PAGE=See_Step_0
+    export DELAYSAY_SUPPORT_EMAIL=See_Step_0
+    export DELAYSAY_BILLING_PORTAL_FAIL_URL=See_Step_0
+    export DELAYSAY_INSTALL_SUCCESS_URL=See_Step_0
+    export DELAYSAY_INSTALL_CANCEL_URL=See_Step_0
+    export DELAYSAY_INSTALL_FAIL_URL=See_Step_0
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-testing-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
@@ -46,10 +51,12 @@ Set environment variables to match your preferences:
     
     # Change these depending on whether you're deploying to the
     # production or development environment:
+    export DELAYSAY_SLASH_COMMAND=/delay
+    export DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN=See_Step_0
     export DELAYSAY_TABLE_NAME=DelaySay
     export DELAYSAY_STACK_NAME=delaysay
     export DELAYSAY_DEPLOY_BUCKET=delaysay-deploy-$RANDOM$RANDOM
-    export DELAYSAY_API_DOMAIN_NAME=api.example.com    # a path at your website
+    export DELAYSAY_API_DOMAIN_NAME=See_Step_0
     export DELAYSAY_SLACK_OAUTH_URL='See_Step_3'
     export DELAYSAY_SLACK_SIGNING_SECRET=delaysay/slack/signing-secret
     export DELAYSAY_SLACK_CLIENT_ID=delaysay/slack/client-id
@@ -72,11 +79,18 @@ Deploy the SAM app:
       --template-file packaged.yaml \
       --capabilities CAPABILITY_IAM \
       --parameter-overrides \
+        "SlashCommand=$DELAYSAY_SLASH_COMMAND" \
+        "SlashCommandLinksDomain=$DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN" \
+        "ContactPage=$DELAYSAY_CONTACT_PAGE" \
+        "SupportEmail=$DELAYSAY_SUPPORT_EMAIL" \
         "DelaySayTableName=$DELAYSAY_TABLE_NAME" \
         "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
         "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
         "SlackOAuthUrl=$DELAYSAY_SLACK_OAUTH_URL" \
         "BillingPortalFailUrl=$DELAYSAY_BILLING_PORTAL_FAIL_URL" \
+        "InstallSuccessUrl=$DELAYSAY_INSTALL_SUCCESS_URL" \
+        "InstallCancelUrl=$DELAYSAY_INSTALL_CANCEL_URL" \
+        "InstallFailUrl=$DELAYSAY_INSTALL_FAIL_URL" \
         "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
         "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
         "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
@@ -85,6 +99,59 @@ Deploy the SAM app:
         "SlackClientIdSsmName=$DELAYSAY_SLACK_CLIENT_ID" \
         "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
         "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
+
+
+## STEP 0: Set up your website/domain
+
+TBD: Register a domain, find the DNS, etc.
+
+Set these environment variables:
+
+$DELAYSAY_DOMAIN_NAME:
+- your website's domain
+- example.com
+- DON'T include "http://" or "https://", because template.yaml adds those in for certain environment variables, but they're not used for Route 53.
+- Also, DON'T end the URL with a slash.
+
+$DELAYSAY_API_DOMAIN_NAME
+- a path at your website where your whole app will be hosted!
+- api.example.com
+- So the Route 53 configuration works, DON'T include "http://" or "https://" and also DON'T end the URL with a slash.
+
+$DELAYSAY_CONTACT_PAGE:
+- the contact page on your website
+- example.com/contact/
+- You can use HTTP or HTTPS; you can also use an ending slash or not.
+
+$DELAYSAY_SUPPORT_EMAIL:
+- an email address
+- team@example.com
+- Preferably set up and use an email at your domain, but you don't have to.
+
+$DELAYSAY_BILLING_PORTAL_FAIL_URL:
+- a page on your website that says the provided token is invalid & it can't redirect to the team's Stripe customer portal
+- https://example.com/invalid-billing-url/
+- You can also use an ending slash or not. I think you can also use HTTP or HTTPS.
+
+$DELAYSAY_INSTALL_SUCCESS_URL:
+- a page on your website that congratulates the user on installing/authorizing the Slack app
+- https://example.com/add-success/
+
+$DELAYSAY_INSTALL_CANCEL_URL:
+- a page on your website that tells the user they canceled installation/authorization of the Slack app
+- https://example.com/add-canceled/
+
+$DELAYSAY_INSTALL_FAIL_URL:
+- a page on your website that says Slack app installation/authorization failed
+- https://example.com/add-failed/
+
+$DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN:
+- a base URL that the slash command can send users to (for API events like /add/?team=abc or /subscribe/?team=abc or /billing/?token=abc)
+- https://api.example.com
+- DON'T end it with a slash, because the slash command app.py will add in a slash and paths later on.
+- If you're using your $DELAYSAY_API_DOMAIN_NAME, you *must* use HTTPS (NOT just api.example.com and NOT http://api.example.com).
+- If you're using a link that redirects to your API (again, using HTTPS), then your link can be HTTP or HTTPS. If you do this, be sure to pass along query string parameters to your API though!
+
 
 
 ## STEP 1: Create the Slack App
@@ -175,13 +242,13 @@ It'll take a while for the validation to finish and the CloudFormation stack to 
 (Connect the Slack app configuration to the AWS API endpoints
 & install the Slack app on your workspace.)
 
-Configure the `/delay` Slack command:
+Configure the slash command:
 
 - Under **"Features"**, click **"Slash Commands"**
 - Click **[Create New Command]**
 - Fill out the form:
-    - Command: **`/delay`**
-    - Request URL: *[Use $endpoint_url value from earlier with "https://" at the beginning and "/slash-command" (the event path from your slash command function in template.yaml) at the end. So if you have a custom domain, it will be something like api.example.com/slash-command]*
+    - Command: *[Use the value in $DELAYSAY_SLASH_COMMAND]*
+    - Request URL: *[Use the $endpoint_url value from earlier with "https://" at the beginning and "/slash-command" (the event path from your slash command function in template.yaml) at the end. So if you have a custom domain, it will be something like api.example.com/slash-command]*
     - Short Description: **`Send [message] at [time] on current channel`**
     - Usage Hint: **`[time] say [message]`**
     - Check: **"Escape channels, users, and links sent to your app"**
@@ -240,6 +307,8 @@ Or! To test your workflow, visit https://{$DELAYSAY_API_DOMAIN_NAME}/add/ or wha
 ## YAY!
 
 The app now works in the Slack workspace you installed it to! Test it out by sending the message `/delay 15 sec say Hello world!`
+
+(Replace "/delay" with whatever you decided to fill $DELAYSAY_SLASH_COMMAND with.)
 
 
 ## STEP 7: Activate public distribution

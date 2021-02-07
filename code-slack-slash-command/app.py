@@ -9,6 +9,7 @@ import boto3
 import requests
 import slack
 import re
+import os
 from urllib.parse import parse_qs
 from datetime import datetime, timedelta
 from random import sample
@@ -31,6 +32,11 @@ from list_and_delete_util import (
 
 
 lambda_client = boto3.client('lambda')
+
+slash = os.environ['SLASH_COMMAND']
+api_domain = os.environ['SLASH_COMMAND_LINKS_DOMAIN']
+contact_page = os.environ['CONTACT_PAGE']
+support_email = os.environ['SUPPORT_EMAIL']
 
 
 # Let the team try DelaySay without paying.
@@ -68,7 +74,7 @@ def list_scheduled_messages(params):
             "Sorry, I can't check your scheduled texts because you haven't"
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
-            "\ndelaysay.com/add/?team=" + team_id)
+            f"\n{api_domain}/add/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -81,7 +87,7 @@ def list_scheduled_messages(params):
                + "^{time_secs} on {date_long}|"
                + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
                + " UTC>")
-        res += "\nTo cancel the first message, reply with `/delay delete 1`."
+        res += f"\nTo cancel the first message, reply with `{slash} delete 1`."
     else:
         res = "Hm... You have no messages scheduled in this channel."
     post_and_print_info_and_confirm_success(response_url, res)
@@ -104,7 +110,7 @@ def delete_scheduled_message(params):
             "Sorry, your text cannot be canceled because you haven't"
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
-            "\ndelaysay.com/add/?team=" + team_id)
+            f"\n{api_domain}/add/?team=" + team_id)
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
@@ -158,7 +164,7 @@ def respond_to_billing_request(params):
             "Sorry, you can't manage your DelaySay billing information"
             " because you haven't authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages:"
-            "\ndelaysay.com/add/?team=" + team_id)
+            f"\n{api_domain}/add/?team=" + team_id)
         return
     
     billing_info = (
@@ -185,7 +191,7 @@ def respond_to_billing_request(params):
             f"You're not authorized to manage {billing_info}."
             "\nPlease ask a *workspace admin* to try instead."
             "\nAn admin can also decide to give you access by typing this:"
-            f"\n        `/delay billing authorize <@{user_id}>`"
+            f"\n        `{slash} billing authorize <@{user_id}>`"
         )
     elif False:
         # TODO: Implement a response for when I manually input a payment
@@ -214,22 +220,21 @@ def build_help_response(params, user_asked_for_help=True):
     else:
       res = "Here is the command format:"
     res += (
-        f"\n        `/delay [time] say [message]`"
-        f"\n        `/delay {two_examples[0]}`"
-        f"\n        `/delay {two_examples[1]}`"
+        f"\n        `{slash} [time] say [message]`"
+        f"\n        `{slash} {two_examples[0]}`"
+        f"\n        `{slash} {two_examples[1]}`"
         "\nI will send the message from your username at the specified date"
         " and time, up to 120 days in the future."
         "\nTo see your scheduled messages in this channel or cancel the next"
         " scheduled message, type:"
-        "\n        `/delay list`        or        `/delay delete 1`"
+        f"\n        `{slash} list`        or        `{slash} delete 1`"
         "\nIf you're an admin in this Slack workspace, you can view past"
         " invoices, update your payment information, and more in your Stripe"
         " customer portal:"
-        "\n        `/delay billing`"
+        f"\n        `{slash} billing`"
         "\nAdmins can also give another user access by typing this:"
-        f"\n        `/delay billing authorize @username`"
-        "\nQuestions? Please reach out at delaysay.com/contact/"
-        " or team@delaysay.com")
+        f"\n        `{slash} billing authorize @username`"
+        f"\nQuestions? Please reach out at {contact_page} or {support_email}")
     return build_response(res)
 
 
@@ -252,9 +257,9 @@ def parse_and_schedule(params):
             " authorized DelaySay yet."
             "\n*Please grant DelaySay permission* to schedule your messages,"
             " then try again:"
-            "\ndelaysay.com/add/?team=" + team_id +
+            f"\n{api_domain}/add/?team=" + team_id +
             "\nIf you have any questions, please reach out at"
-            " delaysay.com/contact/ or team@delaysay.com")
+            f" {contact_page} or {support_email}")
         return
     
     if team.is_trialing():
@@ -273,7 +278,7 @@ def parse_and_schedule(params):
         else:
             payment_status = "green"
     
-    subscribe_url = "delaysay.com/subscribe/?team=" + team_id
+    subscribe_url = f"{api_domain}/subscribe/?team=" + team_id
     
     if payment_status.startswith("red"):
         text = ("\nWe hope you've enjoyed DelaySay! Your message cannot be"
@@ -285,7 +290,7 @@ def parse_and_schedule(params):
         text += ("\nTo continue using DelaySay, *please subscribe here:*"
                  "\n" + subscribe_url +
                  "\nIf you have any questions, please reach out at"
-                 " delaysay.com/contact/ or team@delaysay.com")
+                 f" {contact_page} or {support_email}")
         post_and_print_info_and_confirm_success(response_url, text)
         return
     
@@ -352,7 +357,7 @@ def parse_and_schedule(params):
         text += ("\nTo continue using DelaySay, *please subscribe here:*"
                  "\n" + subscribe_url +
                  "\nIf you have any questions, please reach out at"
-                 " delaysay.com/contact/ or team@delaysay.com")
+                 f" {contact_page} or {support_email}")
     post_and_print_info_and_confirm_success(response_url, text)
 
 
@@ -446,7 +451,7 @@ def lambda_handler_with_catch_all(event, context):
         print(traceback.format_exc().replace('\n', '\r'))
         res = (
             "\nIf the error persists, feel free to reach out at"
-            " delaysay.com/contact/ or team@delaysay.com")
+            f" {contact_page} or {support_email}")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             res = (

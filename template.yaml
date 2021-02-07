@@ -12,6 +12,18 @@ Globals:
     MemorySize: 1792
 
 Parameters:
+  SlashCommand:
+    Type: String
+    Description: "Slash command to run the Slack app (like '/delay')"
+  SlashCommandLinksDomain:
+    Type: String
+    Description: "Domain to send users to when responding to their commands"
+  ContactPage:
+    Type: String
+    Description: "URL for your app's contact page"
+  SupportEmail:
+    Type: String
+    Description: "Support email for your app"
   DelaySayTableName:
     Type: String
     Description: "Name for the DelaySay DynamoDB table"
@@ -26,7 +38,16 @@ Parameters:
     Description: "Install URL (slack.com/oauth/authorize...)"
   BillingPortalFailUrl:
     Type: String
-    Description: "URL for the page that says the user's billing token is invalid & it can't redirect to the Stripe customer portal"
+    Description: "Apology page for invalid/expired billing tokens"
+  InstallSuccessUrl:
+    Type: String
+    Description: "Congrats page for successful installation"
+  InstallCancelUrl:
+    Type: String
+    Description: "Apology page for canceled installation"
+  InstallFailUrl:
+    Type: String
+    Description: "Apology page for failed installation"
   StripeCheckoutSigningSecretSsmName:
     Type: String
     Description: "SSM Parameter Store parameter name for Stripe checkout webhook signing secret"
@@ -155,6 +176,7 @@ Resources:
       Environment:
         Variables:
           BILLING_PORTAL_FAIL_URL: !Ref BillingPortalFailUrl
+          REDIRECT_URL_AFTER_PORTAL: !Sub "https://${DelaySayDomain}/"
           AUTH_TABLE_NAME: !Ref DelaySayTable
           STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
           STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
@@ -217,6 +239,10 @@ Resources:
           SLACK_SIGNING_SECRET_SSM_NAME: !Sub "/${SlackSigningSecretSsmName}"
           STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
           STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
+          SLASH_COMMAND: !Ref SlashCommand
+          SLASH_COMMAND_LINKS_DOMAIN: !Ref SlashCommandLinksDomain
+          CONTACT_PAGE: !Ref ContactPage
+          SUPPORT_EMAIL: !Ref SupportEmail
       Events:
         DelaySay:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -254,6 +280,9 @@ Resources:
           SLACK_CLIENT_SECRET_SSM_NAME: !Sub "/${SlackClientSecretSsmName}"
           STRIPE_API_KEY_SSM_NAME: !Sub "/${StripeApiKeySsmName}"
           STRIPE_TESTING_API_KEY_SSM_NAME: !Sub "/${StripeTestingApiKeySsmName}"
+          INSTALL_SUCCESS_URL: !Ref InstallSuccessUrl
+          INSTALL_CANCEL_URL: !Ref InstallCancelUrl
+          INSTALL_FAIL_URL: !Ref InstallFailUrl
       Events:
         DelaySayUserAuthorization:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

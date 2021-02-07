@@ -1,5 +1,8 @@
 import requests
 import json
+import os
+
+slash = os.environ['SLASH_COMMAND']
 
 
 def get_scheduled_messages(channel_id, token):
@@ -32,10 +35,10 @@ def validate_index_against_scheduled_messages(i, ids, command_text):
         command_phrase = command_text.rsplit(maxsplit=1)[0].rstrip() + " 1"
         return (
             f"Message 0 does not exist. To cancel your first message, type:"
-            f"\n        `/delay {command_phrase}`"
-            "\nTo list the scheduled messages, reply with `/delay list`.")
+            f"\n        `{slash} {command_phrase}`"
+            f"\nTo list the scheduled messages, reply with `{slash} list`.")
     if i >= len(ids):
         return (
             f"Message {i + 1} does not exist."
-            "\nTo list the scheduled messages, reply with `/delay list`.")
+            f"\nTo list the scheduled messages, reply with `{slash} list`.")
     return ""

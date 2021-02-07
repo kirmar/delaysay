@@ -26,6 +26,10 @@ slack_client_secret_parameter = ssm.get_parameter(
 )
 CLIENT_SECRET = slack_client_secret_parameter['Parameter']['Value']
 
+INSTALL_SUCCESS_URL = os.environ['INSTALL_SUCCESS_URL']
+INSTALL_CANCEL_URL = os.environ['INSTALL_CANCEL_URL']
+INSTALL_FAIL_URL = os.environ['INSTALL_FAIL_URL']
+
 # Let the team try DelaySay, but warn them to pay.
 # Stop access to DelaySay this long after they authorize DelaySay.
 FREE_TRIAL_PERIOD = timedelta(days=14)
@@ -38,7 +42,7 @@ def build_response(res, err=None):
             'body': res,
             'headers': {
                 'Content-Type': "application/json",
-                'Location': "https://delaysay.com/add-failed/"
+                'Location': INSTALL_FAIL_URL
             }
         }
     elif res == "canceled":
@@ -47,7 +51,7 @@ def build_response(res, err=None):
             'body': res,
             'headers': {
                 'Content-Type': "application/json",
-                'Location': "https://delaysay.com/add-canceled/"
+                'Location': INSTALL_CANCEL_URL
             }
         }
     else:
@@ -56,7 +60,7 @@ def build_response(res, err=None):
             'body': res,
             'headers': {
                 'Content-Type': "application/json",
-                'Location': "https://delaysay.com/add-success/"
+                'Location': INSTALL_SUCCESS_URL
             }
         }
 

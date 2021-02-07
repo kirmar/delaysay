@@ -10,6 +10,7 @@ from DelaySayExceptions import BillingTokenInvalidError
 # team's billing portal.
 
 BILLING_PORTAL_FAIL_URL = os.environ['BILLING_PORTAL_FAIL_URL']
+REDIRECT_URL_AFTER_PORTAL = os.environ['REDIRECT_URL_AFTER_PORTAL']
 
 ssm = boto3.client('ssm')
 
@@ -106,7 +107,7 @@ def lambda_handler(event, context):
         stripe.api_key = TEST_MODE_API_KEY
     session = stripe.billing_portal.Session.create(
         customer=customer_id,
-        return_url="https://delaysay.com/",
+        return_url=REDIRECT_URL_AFTER_PORTAL,
         # could also create a thank-you page
         # or return to their Slack workspace:
         # return_url="https://app.slack.com/client/" + team_id,

@@ -1,7 +1,11 @@
+import os
 from uuid import uuid4
 from User import User
 from BillingToken import BillingToken
 from datetime import datetime, timedelta
+
+slash = os.environ['SLASH_COMMAND']
+api_domain = os.environ['SLASH_COMMAND_LINKS_DOMAIN']
 
 # When a user generates a billing URL, let them use it for this long.
 BILLING_TOKEN_PERIOD = timedelta(hours=1)
@@ -79,7 +83,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
             if not other_user.is_slack_admin():
                 res += (
                     "\nYou can remove their access by typing:"
-                    f"\n        `/delay billing remove <@{other_user_id}>`"
+                    f"\n        `{slash} billing remove <@{other_user_id}>`"
                 )
         else:
             new_role = other_user.approve_to_manage_billing()
@@ -88,7 +92,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
                 f"<@{other_user_id}> is now authorized to manage"
                 f" {billing_info}."
                 "\nYou can remove their access by typing:"
-                f"\n        `/delay billing remove <@{other_user_id}>`"
+                f"\n        `{slash} billing remove <@{other_user_id}>`"
             )
     elif option == "remove":
         if other_user.is_slack_admin():
@@ -103,7 +107,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
                 f"<@{other_user_id}> is not currently authorized to manage"
                 f" {billing_info}, so you're all set."
                 "\nIf you want, you can authorize them by typing:"
-                f"\n        `/delay billing authorize <@{other_user_id}>`"
+                f"\n        `{slash} billing authorize <@{other_user_id}>`"
             )
         else:
             new_role = other_user.disapprove_to_manage_billing()
@@ -112,7 +116,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
                 f"Thanks! <@{other_user_id}> is no longer authorized to"
                 f" manage {billing_info}."
                 "\nIf you want, you can authorize them again by typing:"
-                f"\n        `/delay billing authorize <@{other_user_id}>`"
+                f"\n        `{slash} billing authorize <@{other_user_id}>`"
             )
     return res
 
@@ -125,7 +129,7 @@ def generate_billing_url(user_id, team_id, team_name):
         team_id=team_id,
         team_name=team_name,
         user_id=user_id)
-    url = f"delaysay.com/billing/?token={billing_token}"
+    url = f"{api_domain}/billing/?token={billing_token}"
     return url
 
 
