@@ -117,7 +117,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
     return res
 
 
-def write_billing_portal_message(user_id, team_id, team_name, response_url):
+def generate_billing_url(user_id, team_id, team_name):
     billing_token = BillingToken(token=uuid4().hex)
     billing_token.add_to_dynamodb(
         create_time=datetime.utcnow(),
@@ -125,11 +125,16 @@ def write_billing_portal_message(user_id, team_id, team_name, response_url):
         team_id=team_id,
         team_name=team_name,
         user_id=user_id)
-    
+    url = f"delaysay.com/billing/?token={billing_token}"
+    return url
+
+
+def write_billing_portal_message(user_id, team_id, team_name, response_url):
+    url = generate_billing_url(user_id, team_id, team_name)
     res = (
         "Here's your Stripe customer portal:"
-        "\ndelaysay.com/billing/?token=" + str(billing_token)
-        + "\nIn your billing portal, you can add credit cards, view past"
+        f"\n{url}"
+        "\nIn your billing portal, you can add credit cards, view past"
         " invoices, and manage your DelaySay subscription."
     )
     return res
