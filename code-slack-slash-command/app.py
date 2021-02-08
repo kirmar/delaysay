@@ -243,7 +243,8 @@ def build_help_response(params, user_asked_for_help=True):
         " invoices, update your payment information, and more in your Stripe"
         " customer portal:"
         f"\n        `{slash} billing`"
-        "\nAdmins can also give another user access by typing this:"
+        "\nAdmins can also give another user access to your workspace's"
+        " billing portal by typing this:"
         f"\n        `{slash} billing authorize @username`"
         f"\n\nQuestions? Please reach out at {contact_page} or {support_email}")
     return build_response(res)
