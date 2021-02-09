@@ -147,7 +147,7 @@ Resources:
   DelaySayInstallRedirectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: code-slack-install-redirect/
+      CodeUri: code-redirect-install/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
       Environment:
@@ -163,7 +163,7 @@ Resources:
   DelaySayBillingRedirectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: code-slack-stripe-customer-portal/
+      CodeUri: code-redirect-stripe-customer-portal/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
       Layers:
@@ -299,7 +299,7 @@ Resources:
   DelaySayStripeCheckoutWebhookFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: code-slack-stripe-checkout-webhook/
+      CodeUri: code-stripe-checkout-webhook/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.8
       Layers:
