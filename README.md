@@ -13,14 +13,16 @@ Note: The directions below explain how to create the Slack app using the code in
 
 - a domain with DNS hosted in AWS Route 53
 
-- aws-cli: <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html>
+- aws-cli:
+    - <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html>
 
-- sam-cli: <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
+- sam-cli:
+    - <https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html>
 
 - Docker:
-  For Ubuntu 20.04:
-    - <https://www.omgubuntu.co.uk/how-to-install-docker-on-ubuntu-20-04/amp>
-    - <https://docs.docker.com/engine/install/linux-postinstall/>
+    - For Ubuntu 20.04:
+      - <https://www.omgubuntu.co.uk/how-to-install-docker-on-ubuntu-20-04/amp>
+      - <https://docs.docker.com/engine/install/linux-postinstall/>
 
 - Python 3.8
 
