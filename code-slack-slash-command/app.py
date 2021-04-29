@@ -185,7 +185,11 @@ def respond_to_billing_request(params):
             )
         else:
             res = (
-                "Your team is currently on a free trial."
+                "Your team is currently on a *free trial* with full access"
+                " to all DelaySay features."
+                "\nIf you're interested in starting your DelaySay subscription"
+                " early before your trial ends, please subscribe here:"
+                f"\n{subscribe_url}/?team={team_id}"
                 "\nAfter you subscribe, check back here to manage"
                 f" {billing_info}."
                 # TODO: Add the trial expiration date
