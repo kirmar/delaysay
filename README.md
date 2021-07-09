@@ -370,20 +370,21 @@ Create pricing plans:
 
 - Toggle off **"Viewing test data"** (Make sure you're viewing the live data.)
 - Click **"Products"**
-- Click **"New"**
-    - What kind of product? **"Recurring products"**
+- Click **"Add product"**
     - Product name: **"DelaySay Slack app"**
     - Leave the unit label and statement descriptor blank (default)
-- Create the product and add a pricing plan:
-    - Plan nickname: recurring-1month-earlyadopter
-    - Leave the ID, pricing, currency, tiers, and trial period as their defaults
-    - For a $5/month plan:
-        - Price per unit: **"$5.00 per unit"**
-        - Billing interval: **"Monthly"**
-- Create the pricing plan and click **"Use with Checkout"**
+    - Price information:
+        - Pricing model: **"Standard pricing"**
+        - Price: Choose a price (charged every month) and select **"Recurring"** (Be sure to check the currency)
+        - Billing period: **"Monthly"**
+        - Leave **"Usage is metered"** unchecked
+        - Price description: recurring-1month-earlyadopter
+        - Don't add a free trial
+    - To add a different billing plan or frequency, choose **"Add another price"**
+- Click the three dots and **"Get Checkout code snippet"**
     - Update the success and cancel URLs as needed
-    - Make note of the example script for creating a checkout button
-- On the side bar, toggle on **"View test data"** and follow the steps again for a test product and test pricing plan (Add " [TEST]" to the end of the product name and "test-" to the beginning of the plan nickname if you'd like.)
+    - Paste the code snippet into your website
+- On the side bar, toggle on **"View test data"** and follow the steps again for a test product and test pricing plan (Add " [TEST]" to the end of the product name and "test-" to the beginning of the plan description if you'd like.)
 
 If you want to add team members:
 
