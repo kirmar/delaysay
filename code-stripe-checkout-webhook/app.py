@@ -16,6 +16,7 @@ from DelaySayExceptions import (
     TimeToleranceExceededError)
 from datetime import datetime
 
+# TODO: Can I safely remove `dynamodb` here?
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
 
