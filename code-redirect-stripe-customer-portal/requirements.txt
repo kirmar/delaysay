@@ -1,1 +1,2 @@
 stripe
+urllib3<2
