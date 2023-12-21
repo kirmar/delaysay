@@ -86,41 +86,41 @@ Resources:
     Properties:
       ContentUri: code-class-exceptions/
       CompatibleRuntimes:
-        - python3.8
+        - python3.10
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.10
   DelaySayLayerStripeSubscription:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: code-class-stripe-subscription/
       CompatibleRuntimes:
-        - python3.8
+        - python3.10
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.10
   DelaySayLayerTeam:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: code-class-team/
       CompatibleRuntimes:
-        - python3.8
+        - python3.10
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.10
   DelaySayLayerUser:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: code-class-user/
       CompatibleRuntimes:
-        - python3.8
+        - python3.10
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.10
   DelaySayLayerBillingToken:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: code-class-billing-token/
       CompatibleRuntimes:
-        - python3.8
+        - python3.10
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.10
   
   # Website
   DelaySayApiCertificate:
@@ -149,7 +149,7 @@ Resources:
     Properties:
       CodeUri: code-redirect-install/
       Handler: app.lambda_handler_with_catch_all
-      Runtime: python3.8
+      Runtime: python3.10
       Environment:
         Variables:
           SLACK_OAUTH_URL: !Ref SlackOAuthUrl
@@ -165,7 +165,7 @@ Resources:
     Properties:
       CodeUri: code-redirect-stripe-customer-portal/
       Handler: app.lambda_handler_with_catch_all
-      Runtime: python3.8
+      Runtime: python3.10
       Layers:
         - !Ref DelaySayLayerExceptions
         - !Ref DelaySayLayerTeam
@@ -219,7 +219,7 @@ Resources:
     Properties:
       CodeUri: code-slack-slash-command/
       Handler: app.lambda_handler_with_catch_all
-      Runtime: python3.8
+      Runtime: python3.10
       Layers:
         # Note: Only 5 layers/function allowed,
         # so combine if need to add more classes
@@ -261,7 +261,7 @@ Resources:
     Properties:
       CodeUri: code-slack-user-authorization/
       Handler: app.lambda_handler_with_catch_all
-      Runtime: python3.8
+      Runtime: python3.10
       Layers:
         - !Ref DelaySayLayerExceptions
         - !Ref DelaySayLayerStripeSubscription
@@ -301,7 +301,7 @@ Resources:
     Properties:
       CodeUri: code-stripe-checkout-webhook/
       Handler: app.lambda_handler_with_catch_all
-      Runtime: python3.8
+      Runtime: python3.10
       Layers:
         - !Ref DelaySayLayerExceptions
         - !Ref DelaySayLayerStripeSubscription

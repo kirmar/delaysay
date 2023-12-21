@@ -12,7 +12,7 @@ help: ## Show help text
 
 requirements:: ## Install Python requirements
 	for requirements in code-*/requirements.txt; do \
-	  python3.8 -m pip install -r $$requirements; \
+	  python3.10 -m pip install -r $$requirements; \
 	done
 
 validate:: ## Validate the SAM template

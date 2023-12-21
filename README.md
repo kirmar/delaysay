@@ -24,12 +24,12 @@ Note: The directions below explain how to create the Slack app using the code in
       - <https://www.omgubuntu.co.uk/how-to-install-docker-on-ubuntu-20-04/amp>
       - <https://docs.docker.com/engine/install/linux-postinstall/>
 
-- Python 3.8
+- Python 3.10
 
 - Packages
 
       for requirements in code-*/requirements.txt; do
-        python3.8 -m pip install -r $requirements
+        python3.10 -m pip install -r $requirements
       done
 
 
