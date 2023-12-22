@@ -89,13 +89,16 @@ def list_scheduled_messages(params):
     scheduled_messages = get_scheduled_messages(channel_id, token)
     if scheduled_messages:
         res = f"Here are the messages you have scheduled in this channel with `{slash}`:"
-        for i, message_info in enumerate(scheduled_messages):
-            timestamp = message_info['post_at']
-            res += f"\n    " + str(i + 1) + ") " + convert_to_slack_datetime(timestamp)
         res += (
             "\nTo cancel the first message"
             f" (if it is sending in over {MIN_TIME_FOR_DELETION_STRING}),"
             f" reply with `{slash} delete 1`.")
+        for i, message_info in enumerate(scheduled_messages):
+            slack_datetime = convert_to_slack_datetime(timestamp=message_info['post_at'])
+            message = message_info['text']
+            res += "\n\n"
+            res += f"    *{i+1}) {slack_datetime}:*"
+            res += f"\n{message}".replace("\n", "\n> ")
     else:
         res = f"You haven't scheduled any messages using `{slash}` in this channel."
     post_and_print_info_and_confirm_success(response_url, res)
@@ -122,8 +125,6 @@ def delete_scheduled_message(params):
         return
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
-    ids = [message_info['id'] for message_info in scheduled_messages]
-    
     if not scheduled_messages:
         res = f"You haven't scheduled any messages using `{slash}` in this channel."
         post_and_print_info_and_confirm_success(response_url, res)
@@ -139,14 +140,15 @@ def delete_scheduled_message(params):
     # The array `ids` use 0-based indexing, but the user uses 1-based.
     i = message_number - 1
     
-    res = validate_index_against_scheduled_messages(i, ids, command_text)
+    res = validate_index_against_scheduled_messages(i, len(scheduled_messages), command_text)
     if res:
         post_and_print_info_and_confirm_success(response_url, res)
         return
     
     slack_client = slack.WebClient(token=token)
+    message_info = scheduled_messages[i]
 
-    if (datetime.utcfromtimestamp(scheduled_messages[i]['post_at'])
+    if (datetime.utcfromtimestamp(message_info['post_at'])
         <= datetime.utcnow() + MIN_TIME_FOR_DELETION):
         res = (
             f"I can't cancel message {message_number};"
@@ -157,9 +159,14 @@ def delete_scheduled_message(params):
     try:
         slack_client.chat_deleteScheduledMessage(
             channel=channel_id,
-            scheduled_message_id=ids[i]
+            scheduled_message_id=message_info['id']
         )
-        res = f"I successfully canceled message {message_number}."
+        slack_datetime = convert_to_slack_datetime(timestamp=message_info['post_at'])
+        message = message_info['text']
+        res = (
+            f"I successfully canceled message {message_number},"
+            f" which would have been sent {slack_datetime} with the following message:"
+            f"\n{message}".replace("\n", "\n> "))
     except slack.errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
