@@ -60,6 +60,13 @@ PAYMENT_GRACE_PERIOD = timedelta(days=2)
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
+# Consider 2021 Slack API bug for deleting scheduled messages
+# (noticed 2023-12-21 and confirmed by https://stackoverflow.com/a/69843299)
+# TODO When Slack fixes this bug, remove these lines and all logic involving them.
+MIN_TIME_FOR_DELETION = timedelta(minutes=5)
+MIN_TIME_FOR_DELETION_STRING = "5 minutes"
+
+
 def list_scheduled_messages(params):
     channel_id = params['channel_id'][0]
     user_id = params['user_id'][0]
@@ -85,7 +92,10 @@ def list_scheduled_messages(params):
         for i, message_info in enumerate(scheduled_messages):
             timestamp = message_info['post_at']
             res += f"\n    " + str(i + 1) + ") " + convert_to_slack_datetime(timestamp)
-        res += f"\nTo cancel the first message, reply with `{slash} delete 1`."
+        res += (
+            "\nTo cancel the first message"
+            f" (if it is sending in over {MIN_TIME_FOR_DELETION_STRING}),"
+            f" reply with `{slash} delete 1`.")
     else:
         res = f"You haven't scheduled any messages using `{slash}` in this channel."
     post_and_print_info_and_confirm_success(response_url, res)
@@ -124,6 +134,14 @@ def delete_scheduled_message(params):
         return
     
     slack_client = slack.WebClient(token=token)
+
+    if (datetime.utcfromtimestamp(scheduled_messages[i]['post_at'])
+        <= datetime.utcnow() + MIN_TIME_FOR_DELETION):
+        res = (
+            f"I can't cancel message {command_text_only_numbers};"
+            f" it's scheduled to send within the next {MIN_TIME_FOR_DELETION_STRING}.")
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
     
     try:
         slack_client.chat_deleteScheduledMessage(
