@@ -1,7 +1,7 @@
-import boto3
-import time
-import os
-import traceback
+from boto3 import resource as boto3_resource
+from time import time
+from os import environ as os_environ
+from traceback import format_exc
 from StripeSubscription import StripeSubscription
 from DelaySayExceptions import AllStripeSubscriptionsInvalid
 from datetime import datetime, timedelta
@@ -13,8 +13,8 @@ class Team:
     
     def __init__(self, id):
         assert id and isinstance(id, str)
-        dynamodb = boto3.resource("dynamodb")
-        self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+        dynamodb = boto3_resource("dynamodb")
+        self.table = dynamodb.Table(os_environ['AUTH_TABLE_NAME'])
         self.id = id
         self.last_updated = 0
         self._refresh()
@@ -41,7 +41,7 @@ class Team:
                 print(
                     "Continuing to the next subscription, because there was a problem"
                     f" retrieving Stripe subscription {id}:\r\r"
-                    + traceback.format_exc().replace('\n', '\r'))
+                    + format_exc().replace('\n', '\r'))
                 retrieved_all_subscriptions_successfully = False
                 continue
             subscriptions.append(subscription)
@@ -91,9 +91,9 @@ class Team:
         # that call it are called (directly or indirectly)
         # by it, like get_time_payment_has_been_overdue()
         # and also never_expires().
-        if not force and time.time() - self.last_updated < 2:
+        if not force and time() - self.last_updated < 2:
             return
-        self.last_updated = time.time()
+        self.last_updated = time()
         response = self.table.get_item(
             Key={
                 'PK': "TEAM#" + self.id,

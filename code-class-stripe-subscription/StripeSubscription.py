@@ -1,19 +1,22 @@
-import boto3
-import stripe
-import time
-import os
+from boto3 import client as boto3_client
+from stripe import (
+    api_key as stripe_api_key,
+    Subscription as stripe_Subscription,
+    error as stripe_error)
+from time import time
+from os import environ as os_environ
 from datetime import datetime
 
-ssm = boto3.client('ssm')
+ssm = boto3_client('ssm')
 
 stripe_api_key_parameter = ssm.get_parameter(
-    Name=os.environ['STRIPE_API_KEY_SSM_NAME'],
+    Name=os_environ['STRIPE_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
-stripe.api_key = stripe_api_key_parameter['Parameter']['Value']
+stripe_api_key = stripe_api_key_parameter['Parameter']['Value']
 
 stripe_test_api_key_parameter = ssm.get_parameter(
-    Name=os.environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+    Name=os_environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
     WithDecryption=True
 )
 TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
@@ -28,15 +31,15 @@ class StripeSubscription:
         self._refresh()
     
     def _refresh(self):
-        if time.time() - self.last_updated < 2:
+        if time() - self.last_updated < 2:
             return
-        self.last_updated = time.time()
+        self.last_updated = time()
         self.mode = "live"
         try:
-            subscription = stripe.Subscription.retrieve(self.id)
-        except stripe.error.InvalidRequestError:
+            subscription = stripe_Subscription.retrieve(self.id)
+        except stripe_error.InvalidRequestError:
             self.mode = "test"
-            subscription = stripe.Subscription.retrieve(
+            subscription = stripe_Subscription.retrieve(
                 self.id, api_key=TEST_MODE_API_KEY)
         self.payment_status = subscription['status']
         unix_timestamp = subscription['current_period_end']

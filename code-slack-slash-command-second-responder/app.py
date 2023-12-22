@@ -3,13 +3,17 @@ Code included from:
 https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
 '''
 
-import json
-import traceback
-import requests
-import slack
-import os
+from json import loads as json_loads
+from traceback import format_exc
+from requests import post as requests_post
+
+from slack import (
+    WebClient as slack_WebClient,
+    errors as slack_errors)
+
+from os import environ as os_environ
 from datetime import datetime, timedelta
-from random import sample
+from random import sample as random_sample
 
 from User import User
 from Team import Team
@@ -25,11 +29,11 @@ from list_and_delete_util import (
     validate_index_against_scheduled_messages)
 
 
-slash = os.environ['SLASH_COMMAND']
-api_domain = os.environ['SLASH_COMMAND_LINKS_DOMAIN']
-contact_page = os.environ['CONTACT_PAGE']
-support_email = os.environ['SUPPORT_EMAIL']
-subscribe_url = os.environ['SUBSCRIBE_URL']
+slash = os_environ['SLASH_COMMAND']
+api_domain = os_environ['SLASH_COMMAND_LINKS_DOMAIN']
+contact_page = os_environ['CONTACT_PAGE']
+support_email = os_environ['SUPPORT_EMAIL']
+subscribe_url = os_environ['SUBSCRIBE_URL']
 
 
 # Let the team try DelaySay without paying.
@@ -59,7 +63,7 @@ MIN_TIME_FOR_DELETION_STRING = "5 minutes"
 
 
 def post_and_print_info_and_confirm_success(response_url, text):
-    r = requests.post(
+    r = requests_post(
         url=response_url,
         json={
             'text': text
@@ -153,7 +157,7 @@ def delete_scheduled_message(params):
         post_and_print_info_and_confirm_success(response_url, res)
         return
     
-    slack_client = slack.WebClient(token=token)
+    slack_client = slack_WebClient(token=token)
     message_info = scheduled_messages[i]
 
     if (datetime.utcfromtimestamp(message_info['post_at'])
@@ -175,7 +179,7 @@ def delete_scheduled_message(params):
             f"I successfully canceled message {message_number},"
             f" which would have been sent {slack_datetime} with the following message:"
             f"\n{message}".replace("\n", "\n> "))
-    except slack.errors.SlackApiError as err:
+    except slack_errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
                 f"I cannot cancel message {message_number};"
@@ -269,7 +273,7 @@ def build_help_text(params):
         "September 13, say It's International Chocolate Day! :chocolate_bar:",
         "January 1, 2020, 12am EST, say Happy New Year! :tada:"
     ]
-    two_examples = sample(examples, 2)
+    two_examples = random_sample(examples, 2)
     res = "Here is the command format:"
     res += (
         f"\n        `{slash} [time] say [message]`"
@@ -411,14 +415,14 @@ def parse_and_schedule(params):
         post_and_print_info_and_confirm_success(response_url, error_text)
         return
     
-    slack_client = slack.WebClient(token=token)
+    slack_client = slack_WebClient(token=token)
     try:
         slack_client.chat_scheduleMessage(
             channel=channel_id,
             post_at=unix_timestamp,
             text=message
         )
-    except slack.errors.SlackApiError as err:
+    except slack_errors.SlackApiError as err:
         error_code = err.response['error']
         if error_code == "time_in_past":
             if unix_timestamp < request_unix_timestamp:
@@ -481,7 +485,7 @@ def lambda_handler_with_catch_all(event, context):
         support_message = (
             "\nIf you have any questions, feel free to reach out at"
             f" {contact_page} or {support_email}")
-        print(traceback.format_exc().replace('\n', '\r'))
+        print(format_exc().replace('\n', '\r'))
         if err.team_id:
             support_message = (
                 "\nTo continue using DelaySay, *please re-subscribe here:*"
@@ -495,7 +499,7 @@ def lambda_handler_with_catch_all(event, context):
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
-        print(traceback.format_exc().replace('\n', '\r'))
+        print(format_exc().replace('\n', '\r'))
         response_url = event['response_url'][0]
         res = (
             "Sorry, there was an error. Please try again later or rephrase"

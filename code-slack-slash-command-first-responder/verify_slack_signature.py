@@ -1,12 +1,12 @@
-import boto3
-import os
-import hmac
-import hashlib
-import time
+from boto3 import client as boto3_client
+from os import environ as os_environ
+from hmac import new as hmac_new
+from hashlib import sha256 as hashlib_sha256
+from time import time
 
-ssm = boto3.client('ssm')
+ssm = boto3_client('ssm')
 slack_signing_secret_parameter = ssm.get_parameter(
-    Name=os.environ['SLACK_SIGNING_SECRET_SSM_NAME'],
+    Name=os_environ['SLACK_SIGNING_SECRET_SSM_NAME'],
     WithDecryption=True
 )
 SLACK_SIGNING_SECRET = slack_signing_secret_parameter['Parameter']['Value']
@@ -17,10 +17,10 @@ TIME_TOLERANCE_IN_SECONDS = 5 * 60
 
 
 def compute_expected_signature(basestring):
-    hash = hmac.new(
+    hash = hmac_new(
         key=SLACK_SIGNING_SECRET.encode(),
         msg=basestring.encode(),
-        digestmod=hashlib.sha256)
+        digestmod=hashlib_sha256)
     expected_signature = "v0=" + hash.hexdigest()
     return expected_signature
 
@@ -35,7 +35,7 @@ def verify_slack_signature(request_timestamp, received_signature,
         # docs say "hmac.compare(received_signature, expected_signature)".
         # Which is better?
         raise SlackSignaturesDoNotMatchError("Slack signatures do not match")
-    current_timestamp = time.time()
+    current_timestamp = time()
     if float(current_timestamp) - float(request_timestamp) > TIME_TOLERANCE_IN_SECONDS:
         raise SlackSignatureTimeToleranceExceededError(
             "Tolerance for timestamp difference was exceeded"

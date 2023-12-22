@@ -3,26 +3,25 @@ Code included from:
 https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
 '''
 
-import json
-import traceback
-import boto3
-import re
-import os
+from json import dumps as json_dumps
+from traceback import format_exc
+from boto3 import client as boto3_client
+from re import compile as re_compile
+from os import environ as os_environ
 from urllib.parse import parse_qs
-from random import sample
+from random import sample as random_sample
 
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError)
 
 from verify_slack_signature import verify_slack_signature
 
+lambda_client = boto3_client('lambda')
 
-lambda_client = boto3.client('lambda')
-
-second_responder_function = os.environ['SECOND_RESPONDER_FUNCTION']
-slash = os.environ['SLASH_COMMAND']
-contact_page = os.environ['CONTACT_PAGE']
-support_email = os.environ['SUPPORT_EMAIL']
+second_responder_function = os_environ['SECOND_RESPONDER_FUNCTION']
+slash = os_environ['SLASH_COMMAND']
+contact_page = os_environ['CONTACT_PAGE']
+support_email = os_environ['SUPPORT_EMAIL']
 
 
 def build_response(res):
@@ -35,7 +34,7 @@ def build_response(res):
     }
 
 
-def build_help_response(params, user_asked_for_help=True):
+def build_help_response(params):
     user_id = params['user_id'][0]
     examples = [
         "2 min say It's been :two: minutes.",
@@ -45,11 +44,8 @@ def build_help_response(params, user_asked_for_help=True):
         "September 13, say It's International Chocolate Day! :chocolate_bar:",
         "January 1, 2020, 12am EST, say Happy New Year! :tada:"
     ]
-    two_examples = sample(examples, 2)
-    if user_asked_for_help:
-      res = f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
-    else:
-      res = "Here is the command format:"
+    two_examples = random_sample(examples, 2)
+    res = f"Hi, <@{user_id}>! Open your favorite channel and type a command:"
     res += (
         f"\n        `{slash} [time] say [message]`"
         f"\n        `{slash} {two_examples[0]}`"
@@ -80,7 +76,7 @@ def respond_before_timeout(event, context):
     command = params['command'][0]
     command_text = params.get('text', [""])[0]
     
-    command_text_only_letters = re.compile('[^a-zA-Z]').sub('', command_text)
+    command_text_only_letters = re_compile('[^a-zA-Z]').sub('', command_text)
     if command_text_only_letters in ["help", ""]:
         return build_help_response(params)
     if command_text_only_letters == "list":
@@ -100,7 +96,7 @@ def respond_before_timeout(event, context):
         ClientContext="DelaySay handler",
         FunctionName=second_responder_function,
         InvocationType="Event",
-        Payload=json.dumps(params)
+        Payload=json_dumps(params)
     )
     
     user_command = f"{command} {command_text}"
@@ -137,18 +133,18 @@ def lambda_handler_with_catch_all(event, context):
     try:
         return lambda_handler(event, context)
     except SlackSignaturesDoNotMatchError:
-        print(traceback.format_exc().replace('\n', '\r'))
+        print(format_exc().replace('\n', '\r'))
         return build_response(
             "Hi, there! There's been an issue, error 403-A."
             + support_message)
     except SlackSignatureTimeToleranceExceededError:
-        print(traceback.format_exc().replace('\n', '\r'))
+        print(format_exc().replace('\n', '\r'))
         return build_response(
             "Hi, there! There's been an issue, error 403-B."
             + support_message)
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
-        print(traceback.format_exc().replace('\n', '\r'))
+        print(format_exc().replace('\n', '\r'))
         res = "Hi, there! Sorry, I'm confused right now. " + support_message
         return build_response(res)

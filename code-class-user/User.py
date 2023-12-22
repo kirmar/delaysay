@@ -1,21 +1,24 @@
-import boto3
-import time
-import requests
-import json
-import os
-import aws_encryption_sdk
-from aws_encryption_sdk import CommitmentPolicy
+from boto3 import resource as boto3_resource
+from requests import post as requests_post
+from json import loads as json_loads
+from os import environ as os_environ
 from DelaySayExceptions import UserAuthorizeError
 from datetime import timezone, timedelta
 
-encryption_client = aws_encryption_sdk.EncryptionSDKClient(
+from aws_encryption_sdk import (
+    EncryptionSDKClient, StrictAwsKmsMasterKeyProvider, CommitmentPolicy)
+
+encryption_client = EncryptionSDKClient(
     commitment_policy=CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT
 )
-kms_key_provider = aws_encryption_sdk.StrictAwsKmsMasterKeyProvider(
+kms_key_provider = StrictAwsKmsMasterKeyProvider(
     key_ids=[
-        os.environ['KMS_MASTER_KEY_ARN']
+        os_environ['KMS_MASTER_KEY_ARN']
     ]
 )
+
+dynamodb = boto3_resource("dynamodb")
+dynamodb_table = dynamodb.Table(os_environ['AUTH_TABLE_NAME'])
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -40,8 +43,6 @@ class User:
     
     def __init__(self, id):
         assert id and isinstance(id, str)
-        dynamodb = boto3.resource("dynamodb")
-        self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
         self.id = id
         self._reset()
     
@@ -53,7 +54,7 @@ class User:
     
     def _reencrypt_token_with_key_commitment(self):
         token_encrypted_with_key_commitment = encrypt_oauth_token(self.token)
-        self.table.update_item(
+        dynamodb_table.update_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -70,7 +71,7 @@ class User:
     
     def _update_billing_role_in_dynamodb(self, billing_role):
         # Update their admin status or approval to handle billing
-        self.table.update_item(
+        dynamodb_table.update_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -85,7 +86,7 @@ class User:
     def is_slack_admin(self):
         if not self.is_admin:
             self.token = self.get_auth_token()
-            r = requests.post(
+            r = requests_post(
                 url="https://slack.com/api/users.info",
                 data={
                     'user': self.id
@@ -98,7 +99,7 @@ class User:
             if r.status_code != 200:
                 print(r.status_code, r.reason)
                 raise Exception("requests.post failed")
-            user_object = json.loads(r.content)
+            user_object = json_loads(r.content)
             if not user_object['ok']:
                 raise Exception(
                     "User.is_slack_admin() failed: " + user_object['error'] +
@@ -112,7 +113,7 @@ class User:
         # if not force and time.time() - self.last_updated < 2:
         #     return
         # self.last_updated = time.time()
-        response = self.table.get_item(
+        response = dynamodb_table.get_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -162,7 +163,7 @@ class User:
         return self.billing_role
     
     def is_in_dynamodb(self):
-        response = self.table.get_item(
+        response = dynamodb_table.get_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -172,7 +173,7 @@ class User:
     
     def get_auth_token(self):
         if not self.token:
-            response = self.table.get_item(
+            response = dynamodb_table.get_item(
                 Key={
                     'PK': "USER#" + self.id,
                     'SK': "user"
@@ -189,7 +190,7 @@ class User:
     
     def get_timezone(self):
         if not self.timezone:
-            r = requests.post(
+            r = requests_post(
                 url="https://slack.com/api/users.info",
                 data={
                     'user': self.id
@@ -202,7 +203,7 @@ class User:
             if r.status_code != 200:
                 print(r.status_code, r.reason)
                 raise Exception("requests.post failed")
-            user_object = json.loads(r.content)
+            user_object = json_loads(r.content)
             if not user_object['ok']:
                 raise Exception(
                     "User.get_timezone() failed: " + user_object['error'] +
@@ -227,7 +228,7 @@ class User:
         for key in list(item):
             if not item[key]:
                 del item[key]
-        self.table.put_item(Item=item)
+        dynamodb_table.put_item(Item=item)
         self._reset()
     
     def __eq__(self, other):

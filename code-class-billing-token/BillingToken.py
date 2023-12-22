@@ -1,11 +1,13 @@
-import boto3
-import time
-import os
+from boto3 import resource as boto3_resource
+from os import environ as os_environ
 from DelaySayExceptions import BillingTokenInvalidError
 from datetime import datetime
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+dynamodb = boto3_resource("dynamodb")
+dynamodb_table = dynamodb.Table(os_environ['AUTH_TABLE_NAME'])
 
 class BillingToken:
     
@@ -14,14 +16,12 @@ class BillingToken:
         if token == "" or token == None:
             raise BillingTokenInvalidError(
                 "Billing token empty: " + str(token))
-        dynamodb = boto3.resource("dynamodb")
-        self.table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
         self.token = token
         self.table_entry = None
     
     def _get_table_entry(self):
         if not self.table_entry:
-            response = self.table.get_item(
+            response = dynamodb_table.get_item(
                 Key={
                     'PK': "BILLING#" + self.token,
                     'SK': "billing"
@@ -49,7 +49,7 @@ class BillingToken:
         for key in list(item):
             if not item[key]:
                 del item[key]
-        self.table.put_item(Item=item)
+        dynamodb_table.put_item(Item=item)
     
     def has_expired(self):
         date = self._get_table_entry()['token_expiration']

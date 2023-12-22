@@ -1,7 +1,7 @@
-import re
+from re import sub as re_sub
 from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timedelta
-from dateparser import parse
+from dateparser import parse as dateparser_parse
 
 SECONDS_THRESHOLD = timedelta(minutes=10)
 
@@ -32,14 +32,14 @@ class SlashCommandParser:
     
     def _remove_leading_zero_from_hour(self, time_string):
         # Remove leading zeroes from the hour.
-        return re.sub(r"^0(?=[0-9]:)", "", time_string)
+        return re_sub(r"^0(?=[0-9]:)", "", time_string)
     
     def _parse_time(self):
         user_input = self.original_time.rstrip(":").rstrip(",")
         user_input = user_input.replace("hr", "hour").replace("h ", "hour ")
         user_input = user_input.replace("a ", "am ")
         user_input = user_input.replace("next", "")
-        scheduled_time = parse(
+        scheduled_time = dateparser_parse(
             user_input,
             settings={
                 'PREFER_DATES_FROM': "future",
@@ -53,7 +53,7 @@ class SlashCommandParser:
             scheduled_time = scheduled_time.replace(tzinfo=self.user_tz)
         if scheduled_time <= self.initial_time:
             # Help dateparser.parser.parse with relative dates
-            scheduled_time = parse(
+            scheduled_time = dateparser_parse(
                 "in " + user_input,
                 settings={
                     'PREFER_DATES_FROM': "future",
