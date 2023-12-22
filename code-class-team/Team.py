@@ -1,7 +1,9 @@
 import boto3
 import time
 import os
+import traceback
 from StripeSubscription import StripeSubscription
+from DelaySayExceptions import AllStripeSubscriptionsInvalid
 from datetime import datetime, timedelta
 
 # This is the format used to log dates in the DynamoDB table.
@@ -31,9 +33,21 @@ class Team:
     
     def _load_subscriptions(self):
         subscriptions = []
+        retrieved_all_subscriptions_successfully = True
         for id in self.subscription_ids:
-            subscription = StripeSubscription(id)
+            try:
+                subscription = StripeSubscription(id)
+            except Exception as err:
+                print(
+                    "Continuing to the next subscription, because there was a problem"
+                    f" retrieving Stripe subscription {id}:\r\r"
+                    + traceback.format_exc().replace('\n', '\r'))
+                retrieved_all_subscriptions_successfully = False
+                continue
             subscriptions.append(subscription)
+        if not subscriptions and not retrieved_all_subscriptions_successfully:
+            # Tried to find subscriptions but all IDs caused errors
+            raise AllStripeSubscriptionsInvalid(team_id=self.id)
         return subscriptions
     
     def _update_payment_info_in_dynamodb(self):

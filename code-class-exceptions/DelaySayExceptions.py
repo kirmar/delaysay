@@ -28,6 +28,11 @@ class TimeParseError(Exception):
         super().__init__(message)
         self.time_text = time_text
 
+class AllStripeSubscriptionsInvalid(Exception):
+    def __init__(self, team_id, message=""):
+        super().__init__(message)
+        self.team_id = team_id
+
 
 # Stripe webhook exceptions
 

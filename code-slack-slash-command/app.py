@@ -19,7 +19,7 @@ from Team import Team
 from SlashCommandParser import SlashCommandParser
 from DelaySayExceptions import (
     SlackSignaturesDoNotMatchError, SlackSignatureTimeToleranceExceededError,
-    UserAuthorizeError, CommandParseError, TimeParseError)
+    UserAuthorizeError, CommandParseError, TimeParseError, AllStripeSubscriptionsInvalid)
 
 from verify_slack_signature import verify_slack_signature
 from slack_response_util import (
@@ -481,31 +481,51 @@ def lambda_handler(event, context):
 
 
 def lambda_handler_with_catch_all(event, context):
+    support_message = (
+        "\nIf the error persists, feel free to reach out at"
+        f" {contact_page} or {support_email}")
     try:
         return lambda_handler(event, context)
     except SlackSignaturesDoNotMatchError:
         print(traceback.format_exc().replace('\n', '\r'))
         return build_response(
-            "Hi, there! I can't respond to your request because it has an"
-            " invalid Slack signature. It's a security risk.")
+            "Hi, there! There's been an issue, error 403-A."
+            + support_message)
     except SlackSignatureTimeToleranceExceededError:
         print(traceback.format_exc().replace('\n', '\r'))
         return build_response(
-            "Hi, there! I can't respond to your request because it was sent"
-            " long ago. It's a security risk.")
+            "Hi, there! There's been an issue, error 403-B."
+            + support_message)
+    except AllStripeSubscriptionsInvalid as err:
+        support_message = (
+            "\nIf you have any questions, feel free to reach out at"
+            f" {contact_page} or {support_email}")
+        print(traceback.format_exc().replace('\n', '\r'))
+        if err.team_id:
+            support_message = (
+                "\nTo continue using DelaySay, *please re-subscribe here:*"
+                f"\n{subscribe_url}/?team={err.team_id}"
+                + support_message)
+        if event.get("currentFunctionOfFunction") and "response_url" in event:
+            response_url = event['response_url'][0]
+            res = (
+                "Sorry, you don't have a valid subscription."
+                + support_message)
+            post_and_print_info_and_confirm_success(response_url, res)
+        else:
+            return build_response(
+                "Hi, there! Sorry, you don't have a valid subscription."
+                + support_message)
     except Exception as err:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         print(traceback.format_exc().replace('\n', '\r'))
-        res = (
-            "\nIf the error persists, feel free to reach out at"
-            f" {contact_page} or {support_email}")
         if event.get("currentFunctionOfFunction") and "response_url" in event:
             response_url = event['response_url'][0]
             res = (
                 "Sorry, there was an error. Please try again later or rephrase"
-                " your command. ") + res
+                " your command. ") + support_message
             post_and_print_info_and_confirm_success(response_url, res)
         else:
-            res = "Hi, there! Sorry, I'm confused right now. " + res
+            res = "Hi, there! Sorry, I'm confused right now. " + support_message
             return build_response(res)
