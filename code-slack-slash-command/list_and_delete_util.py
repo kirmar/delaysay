@@ -39,12 +39,10 @@ def get_scheduled_messages(channel_id, token):
 
 
 def validate_index_against_scheduled_messages(i, ids, command_text):
-    if not ids:
-        return "You have no scheduled messages in this channel."
-    if i == -1:
+    if i < 0:
         command_phrase = command_text.rsplit(maxsplit=1)[0].rstrip() + " 1"
         return (
-            f"Message 0 does not exist. To cancel your first message, type:"
+            f"Message {i+1} does not exist. To cancel your first message, type:"
             f"\n        `{slash} {command_phrase}`"
             f"\nTo list the scheduled messages, reply with `{slash} list`.")
     if i >= len(ids):

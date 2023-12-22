@@ -123,10 +123,21 @@ def delete_scheduled_message(params):
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
     ids = [message_info['id'] for message_info in scheduled_messages]
-    command_text_only_numbers = re.compile('[^0-9]').sub('', command_text)
     
+    if not scheduled_messages:
+        res = f"You haven't scheduled any messages using `{slash}` in this channel."
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
+    
+    try:
+        message_number = int(command_text.split(maxsplit=1)[1])
+    except (ValueError, IndexError):
+        res = f"To see what messages can be canceled and how, try `{slash} list`."
+        post_and_print_info_and_confirm_success(response_url, res)
+        return
+
     # The array `ids` use 0-based indexing, but the user uses 1-based.
-    i = int(command_text_only_numbers) - 1
+    i = message_number - 1
     
     res = validate_index_against_scheduled_messages(i, ids, command_text)
     if res:
@@ -138,7 +149,7 @@ def delete_scheduled_message(params):
     if (datetime.utcfromtimestamp(scheduled_messages[i]['post_at'])
         <= datetime.utcnow() + MIN_TIME_FOR_DELETION):
         res = (
-            f"I can't cancel message {command_text_only_numbers};"
+            f"I can't cancel message {message_number};"
             f" it's scheduled to send within the next {MIN_TIME_FOR_DELETION_STRING}.")
         post_and_print_info_and_confirm_success(response_url, res)
         return
@@ -148,11 +159,11 @@ def delete_scheduled_message(params):
             channel=channel_id,
             scheduled_message_id=ids[i]
         )
-        res = f"I successfully canceled message {command_text_only_numbers}."
+        res = f"I successfully canceled message {message_number}."
     except slack.errors.SlackApiError as err:
         if err.response['error'] == "invalid_scheduled_message_id":
             res = (
-                f"I cannot cancel message {command_text_only_numbers};"
+                f"I cannot cancel message {message_number};"
                 " it already sent or will send within 60 seconds.")
         else:
             raise

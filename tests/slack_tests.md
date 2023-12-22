@@ -9,6 +9,16 @@ Also:
 `/delay delete 1`
 
 
+DelaySay should say it can only delete starting at 1:
+`/delay delete -1`
+
+DelaySay should say to check `/delay list` for messages to delete:
+`/delay delete`
+
+If no messages are scheduled, DelaySay should say to check `/delay list`:
+`/delay delete 1`
+
+
 DelaySay should say it can't schedule in the past:
 `/delay 2019-09-01 1pm say 2019-09-01 1pm`
 
