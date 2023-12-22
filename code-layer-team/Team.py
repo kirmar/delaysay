@@ -1,20 +1,14 @@
-from boto3 import resource as boto3_resource
 from time import time
-from os import environ as os_environ
 from traceback import format_exc
 from StripeSubscription import StripeSubscription
 from DelaySayExceptions import AllStripeSubscriptionsInvalid
+from dynamodb import dynamodb_table, DATETIME_FORMAT
 from datetime import datetime, timedelta
-
-# This is the format used to log dates in the DynamoDB table.
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 class Team:
     
     def __init__(self, id):
         assert id and isinstance(id, str)
-        dynamodb = boto3_resource("dynamodb")
-        self.table = dynamodb.Table(os_environ['AUTH_TABLE_NAME'])
         self.id = id
         self.last_updated = 0
         self._refresh()
@@ -52,7 +46,7 @@ class Team:
     
     def _update_payment_info_in_dynamodb(self):
         payment_expiration_as_string = self._get_payment_expiration_as_string()
-        self.table.update_item(
+        dynamodb_table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"
@@ -94,7 +88,7 @@ class Team:
         if not force and time() - self.last_updated < 2:
             return
         self.last_updated = time()
-        response = self.table.get_item(
+        response = dynamodb_table.get_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"
@@ -168,7 +162,7 @@ class Team:
                 continue
             if not item[key]:
                 del item[key]
-        self.table.put_item(Item=item)
+        dynamodb_table.put_item(Item=item)
         self._refresh(force=True)
     
     def add_subscription(self, subscription_id):
@@ -178,7 +172,7 @@ class Team:
         self._refresh(alert_if_not_in_dynamodb=True)
         self.subscription_ids.append(subscription_id)
         self._update_payment_info()
-        self.table.update_item(
+        dynamodb_table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"

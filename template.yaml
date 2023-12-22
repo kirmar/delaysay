@@ -84,15 +84,15 @@ Resources:
   DelaySayLayerExceptions:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: code-class-exceptions/
+      ContentUri: code-layer-exceptions/
       CompatibleRuntimes:
         - python3.10
     Metadata:
       BuildMethod: python3.10
-  DelaySayLayerStripeSubscription:
+  DelaySayLayerDynamoDB:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: code-class-stripe-subscription/
+      ContentUri: code-layer-dynamodb/
       CompatibleRuntimes:
         - python3.10
     Metadata:
@@ -100,7 +100,7 @@ Resources:
   DelaySayLayerTeam:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: code-class-team/
+      ContentUri: code-layer-team/
       CompatibleRuntimes:
         - python3.10
     Metadata:
@@ -108,7 +108,7 @@ Resources:
   DelaySayLayerUser:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: code-class-user/
+      ContentUri: code-layer-user/
       CompatibleRuntimes:
         - python3.10
     Metadata:
@@ -116,7 +116,7 @@ Resources:
   DelaySayLayerBillingToken:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: code-class-billing-token/
+      ContentUri: code-layer-billing-token/
       CompatibleRuntimes:
         - python3.10
     Metadata:
@@ -169,8 +169,8 @@ Resources:
       Layers:
         - !Ref DelaySayLayerExceptions
         - !Ref DelaySayLayerTeam
-        - !Ref DelaySayLayerStripeSubscription
         - !Ref DelaySayLayerBillingToken
+        - !Ref DelaySayLayerDynamoDB
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
@@ -224,10 +224,10 @@ Resources:
         # Note: Only 5 layers/function allowed,
         # so combine if need to add more classes
         - !Ref DelaySayLayerExceptions
-        - !Ref DelaySayLayerStripeSubscription
         - !Ref DelaySayLayerTeam
         - !Ref DelaySayLayerUser
         - !Ref DelaySayLayerBillingToken
+        - !Ref DelaySayLayerDynamoDB
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
@@ -282,9 +282,9 @@ Resources:
       Runtime: python3.10
       Layers:
         - !Ref DelaySayLayerExceptions
-        - !Ref DelaySayLayerStripeSubscription
         - !Ref DelaySayLayerTeam
         - !Ref DelaySayLayerUser
+        - !Ref DelaySayLayerDynamoDB
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
@@ -322,8 +322,8 @@ Resources:
       Runtime: python3.10
       Layers:
         - !Ref DelaySayLayerExceptions
-        - !Ref DelaySayLayerStripeSubscription
         - !Ref DelaySayLayerTeam
+        - !Ref DelaySayLayerDynamoDB
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable

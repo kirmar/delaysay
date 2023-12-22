@@ -1,8 +1,8 @@
-from boto3 import resource as boto3_resource
 from requests import post as requests_post
 from json import loads as json_loads
 from os import environ as os_environ
 from DelaySayExceptions import UserAuthorizeError
+from dynamodb import dynamodb_table
 from datetime import timezone, timedelta
 
 from aws_encryption_sdk import (
@@ -16,9 +16,6 @@ kms_key_provider = StrictAwsKmsMasterKeyProvider(
         os_environ['KMS_MASTER_KEY_ARN']
     ]
 )
-
-dynamodb = boto3_resource("dynamodb")
-dynamodb_table = dynamodb.Table(os_environ['AUTH_TABLE_NAME'])
 
 # This is the format used to log dates in the DynamoDB table.
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
