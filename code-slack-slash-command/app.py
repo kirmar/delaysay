@@ -81,13 +81,13 @@ def list_scheduled_messages(params):
     
     scheduled_messages = get_scheduled_messages(channel_id, token)
     if scheduled_messages:
-        res = f"Here are the messages you have scheduled:"
+        res = f"Here are the messages you have scheduled in this channel with `{slash}`:"
         for i, message_info in enumerate(scheduled_messages):
             timestamp = message_info['post_at']
             res += f"\n    " + str(i + 1) + ") " + convert_to_slack_datetime(timestamp)
         res += f"\nTo cancel the first message, reply with `{slash} delete 1`."
     else:
-        res = "Hm... You have no messages scheduled in this channel."
+        res = f"You haven't scheduled any messages using `{slash}` in this channel."
     post_and_print_info_and_confirm_success(response_url, res)
 
 
@@ -236,7 +236,8 @@ def build_help_response(params, user_asked_for_help=True):
         f"\n        `{slash} {two_examples[1]}`"
         "\nI will send the message from your username at the specified date"
         " and time, up to 120 days in the future. (Can't schedule messages to"
-        " send in the past yet, sorry!)"
+        " send in the past yet, but we'll consider adding this feature"
+        " once time travel is possible!)"
         "\n\nTo see your scheduled messages in this channel or cancel the next"
         " scheduled message, type:"
         f"\n        `{slash} list`        or        `{slash} delete 1`"
@@ -355,14 +356,19 @@ def parse_and_schedule(params):
     except TimeParseError as err:
         post_and_print_info_and_confirm_success(
             response_url,
-            f'Sorry, I don\'t understand the time "{err.time_text}".'
-            " *Please try again.*")
+            f'I don\'t understand the time "{err.time_text}".'
+            f" *Please rephrase the time* or try `{slash} help`.")
         return
     
     date = parser.get_date_string_for_slack()
     time = parser.get_time_string_for_slack()
     unix_timestamp = datetime.timestamp(parser.get_time())
     message = parser.get_message()
+
+    if not message:
+        error_text = "I can't schedule an empty message."
+        post_and_print_info_and_confirm_success(response_url, error_text)
+        return
     
     slack_client = slack.WebClient(token=token)
     try:
@@ -375,16 +381,16 @@ def parse_and_schedule(params):
         error_code = err.response['error']
         if error_code == "time_in_past":
             if unix_timestamp < request_unix_timestamp:
-                error_text = "Sorry, I can't schedule a message in the past."
+                error_text = "Slack can't schedule a message in the past."
             else:
-                error_text = (
-                    "Sorry, I can't schedule in the extremely near future.")
+                error_text = "Slack can't schedule in the extremely near future."
         elif error_code == "time_too_far":
-            error_text = (
-                "Sorry, I can't schedule more than 120 days in the future.")
+            error_text = "Slack can't schedule too far into the future, typically 120 days."
         elif error_code == "msg_too_long":
             error_text = (
-                f"Sorry, your message is too long: {len(message)} characters.")
+                f"Slack can't schedule a message if it's too long; yours is {len(message)} characters.")
+        elif error_code == "restricted_too_many":
+            error_text = "Slack can't schedule too many messages too close together."
         else:
             raise
         post_and_print_info_and_confirm_success(response_url, error_text)
