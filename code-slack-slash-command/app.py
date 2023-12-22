@@ -28,7 +28,8 @@ from billing_util import (
     parse_option_and_user, write_message_and_add_or_remove_billing_role,
     write_billing_portal_message, generate_billing_url)
 from list_and_delete_util import (
-    get_scheduled_messages, validate_index_against_scheduled_messages)
+    convert_to_slack_datetime, get_scheduled_messages,
+    validate_index_against_scheduled_messages)
 
 
 lambda_client = boto3.client('lambda')
@@ -83,11 +84,7 @@ def list_scheduled_messages(params):
         res = f"Here are the messages you have scheduled:"
         for i, message_info in enumerate(scheduled_messages):
             timestamp = message_info['post_at']
-            res += (
-               f"\n    " + str(i + 1) + ") <!date^" + str(timestamp)
-               + "^{time_secs} on {date_long}|"
-               + datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-               + " UTC>")
+            res += f"\n    " + str(i + 1) + ") " + convert_to_slack_datetime(timestamp)
         res += f"\nTo cancel the first message, reply with `{slash} delete 1`."
     else:
         res = "Hm... You have no messages scheduled in this channel."
