@@ -2,13 +2,15 @@ from time import time
 from traceback import format_exc
 from StripeSubscription import StripeSubscription
 from DelaySayExceptions import AllStripeSubscriptionsInvalid
-from dynamodb import dynamodb_table, DATETIME_FORMAT
 from datetime import datetime, timedelta
 
 class Team:
     
     def __init__(self, id):
         assert id and isinstance(id, str)
+        from dynamodb import dynamodb_table, DATETIME_FORMAT
+        self.table = dynamodb_table
+        self.datetime_format = DATETIME_FORMAT
         self.id = id
         self.last_updated = 0
         self._refresh()
@@ -18,7 +20,7 @@ class Team:
             payment_expiration_as_string = self.payment_expiration
         elif isinstance(self.payment_expiration, datetime):
             payment_expiration_as_string = (
-                self.payment_expiration.strftime(DATETIME_FORMAT))
+                self.payment_expiration.strftime(self.datetime_format))
         else:
             # This shouldn't ever happen, but if it does, I at least
             # want to know what happened.
@@ -46,7 +48,7 @@ class Team:
     
     def _update_payment_info_in_dynamodb(self):
         payment_expiration_as_string = self._get_payment_expiration_as_string()
-        dynamodb_table.update_item(
+        self.table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"
@@ -88,7 +90,7 @@ class Team:
         if not force and time() - self.last_updated < 2:
             return
         self.last_updated = time()
-        response = dynamodb_table.get_item(
+        response = self.table.get_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"
@@ -106,7 +108,7 @@ class Team:
         self.is_in_dynamodb = True
         date = response['Item']['payment_expiration']
         try:
-            self.payment_expiration = datetime.strptime(date, DATETIME_FORMAT)
+            self.payment_expiration = datetime.strptime(date, self.datetime_format)
         except:
             # The expiration is probably "never".
             self.payment_expiration = date
@@ -152,8 +154,8 @@ class Team:
             'team_name': team_name,
             'team_id': self.id,
             'enterprise_id': enterprise_id,
-            'create_time': create_time.strftime(DATETIME_FORMAT),
-            'payment_expiration': trial_expiration.strftime(DATETIME_FORMAT),
+            'create_time': create_time.strftime(self.datetime_format),
+            'payment_expiration': trial_expiration.strftime(self.datetime_format),
             'payment_plan': "trial",
             'stripe_subscriptions': []
         }
@@ -162,7 +164,7 @@ class Team:
                 continue
             if not item[key]:
                 del item[key]
-        dynamodb_table.put_item(Item=item)
+        self.table.put_item(Item=item)
         self._refresh(force=True)
     
     def add_subscription(self, subscription_id):
@@ -172,7 +174,7 @@ class Team:
         self._refresh(alert_if_not_in_dynamodb=True)
         self.subscription_ids.append(subscription_id)
         self._update_payment_info()
-        dynamodb_table.update_item(
+        self.table.update_item(
             Key={
                 'PK': "TEAM#" + self.id,
                 'SK': "team"

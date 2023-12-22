@@ -1,7 +1,6 @@
 from re import sub as re_sub
 from DelaySayExceptions import CommandParseError, TimeParseError
 from datetime import datetime, timedelta
-from dateparser import parse as dateparser_parse
 
 SECONDS_THRESHOLD = timedelta(minutes=10)
 
@@ -35,6 +34,7 @@ class SlashCommandParser:
         return re_sub(r"^0(?=[0-9]:)", "", time_string)
     
     def _parse_time(self):
+        from dateparser import parse as dateparser_parse
         user_input = self.original_time.rstrip(":").rstrip(",")
         user_input = user_input.replace("hr", "hour").replace("h ", "hour ")
         user_input = user_input.replace("a ", "am ")

@@ -1,31 +1,36 @@
 from boto3 import client as boto3_client
-from stripe import (
-    api_key as stripe_api_key,
-    Subscription as stripe_Subscription,
-    error as stripe_error)
 from time import time
 from os import environ as os_environ
 from datetime import datetime
 
-ssm = boto3_client('ssm')
+def setup():
+    from stripe import api_key as stripe_api_key
+    ssm = boto3_client('ssm')
 
-stripe_api_key_parameter = ssm.get_parameter(
-    Name=os_environ['STRIPE_API_KEY_SSM_NAME'],
-    WithDecryption=True
-)
-stripe_api_key = stripe_api_key_parameter['Parameter']['Value']
+    stripe_api_key_parameter = ssm.get_parameter(
+        Name=os_environ['STRIPE_API_KEY_SSM_NAME'],
+        WithDecryption=True
+    )
+    stripe_api_key = stripe_api_key_parameter['Parameter']['Value']
 
-stripe_test_api_key_parameter = ssm.get_parameter(
-    Name=os_environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
-    WithDecryption=True
-)
-TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
+    stripe_test_api_key_parameter = ssm.get_parameter(
+        Name=os_environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
+        WithDecryption=True
+    )
+    TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
+    return TEST_MODE_API_KEY
 
 
 class StripeSubscription:
+
+    SETUP_DONE = False
+    TEST_MODE_API_KEY = None
     
     def __init__(self, id):
         assert id and isinstance(id, str)
+        if not StripeSubscription.SETUP_DONE:
+            StripeSubscription.TEST_MODE_API_KEY = setup()
+            StripeSubscription.SETUP_DONE = True
         self.id = id
         self.last_updated = 0
         self._refresh()
@@ -33,6 +38,9 @@ class StripeSubscription:
     def _refresh(self):
         if time() - self.last_updated < 2:
             return
+        from stripe import (
+            Subscription as stripe_Subscription,
+            error as stripe_error)
         self.last_updated = time()
         self.mode = "live"
         try:
@@ -40,7 +48,7 @@ class StripeSubscription:
         except stripe_error.InvalidRequestError:
             self.mode = "test"
             subscription = stripe_Subscription.retrieve(
-                self.id, api_key=TEST_MODE_API_KEY)
+                self.id, api_key=StripeSubscription.TEST_MODE_API_KEY)
         self.payment_status = subscription['status']
         unix_timestamp = subscription['current_period_end']
         self.next_expiration = datetime.utcfromtimestamp(unix_timestamp)

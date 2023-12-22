@@ -1,20 +1,22 @@
 from DelaySayExceptions import BillingTokenInvalidError
-from dynamodb import dynamodb_table, DATETIME_FORMAT
 from datetime import datetime
 
 class BillingToken:
     
     def __init__(self, token):
         assert isinstance(token, str) or token == None
+        from dynamodb import dynamodb_table, DATETIME_FORMAT
         if token == "" or token == None:
             raise BillingTokenInvalidError(
                 "Billing token empty: " + str(token))
+        self.table = dynamodb_table
+        self.datetime_format = DATETIME_FORMAT
         self.token = token
         self.table_entry = None
     
     def _get_table_entry(self):
         if not self.table_entry:
-            response = dynamodb_table.get_item(
+            response = self.table.get_item(
                 Key={
                     'PK': "BILLING#" + self.token,
                     'SK': "billing"
@@ -33,8 +35,8 @@ class BillingToken:
             'PK': "BILLING#" + self.token,
             'SK': "billing",
             'token': self.token,
-            'create_time': create_time.strftime(DATETIME_FORMAT),
-            'token_expiration': expiration.strftime(DATETIME_FORMAT),
+            'create_time': create_time.strftime(self.datetime_format),
+            'token_expiration': expiration.strftime(self.datetime_format),
             'team_id': team_id,
             'team_domain': team_domain,
             'user_id': user_id
@@ -42,11 +44,11 @@ class BillingToken:
         for key in list(item):
             if not item[key]:
                 del item[key]
-        dynamodb_table.put_item(Item=item)
+        self.table.put_item(Item=item)
     
     def has_expired(self):
         date = self._get_table_entry()['token_expiration']
-        token_expiration = datetime.strptime(date, DATETIME_FORMAT)
+        token_expiration = datetime.strptime(date, self.datetime_format)
         now = datetime.utcnow()
         return (token_expiration < now)
     

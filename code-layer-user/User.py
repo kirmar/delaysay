@@ -2,7 +2,6 @@ from requests import post as requests_post
 from json import loads as json_loads
 from os import environ as os_environ
 from DelaySayExceptions import UserAuthorizeError
-from dynamodb import dynamodb_table
 from datetime import timezone, timedelta
 
 from aws_encryption_sdk import (
@@ -16,9 +15,6 @@ kms_key_provider = StrictAwsKmsMasterKeyProvider(
         os_environ['KMS_MASTER_KEY_ARN']
     ]
 )
-
-# This is the format used to log dates in the DynamoDB table.
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 def encrypt_oauth_token(token):
     token_as_bytes = token.encode()
@@ -40,6 +36,9 @@ class User:
     
     def __init__(self, id):
         assert id and isinstance(id, str)
+        from dynamodb import dynamodb_table, DATETIME_FORMAT
+        self.table = dynamodb_table
+        self.datetime_format = DATETIME_FORMAT
         self.id = id
         self._reset()
     
@@ -51,7 +50,7 @@ class User:
     
     def _reencrypt_token_with_key_commitment(self):
         token_encrypted_with_key_commitment = encrypt_oauth_token(self.token)
-        dynamodb_table.update_item(
+        self.table.update_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -68,7 +67,7 @@ class User:
     
     def _update_billing_role_in_dynamodb(self, billing_role):
         # Update their admin status or approval to handle billing
-        dynamodb_table.update_item(
+        self.table.update_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -110,7 +109,7 @@ class User:
         # if not force and time.time() - self.last_updated < 2:
         #     return
         # self.last_updated = time.time()
-        response = dynamodb_table.get_item(
+        response = self.table.get_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -160,7 +159,7 @@ class User:
         return self.billing_role
     
     def is_in_dynamodb(self):
-        response = dynamodb_table.get_item(
+        response = self.table.get_item(
             Key={
                 'PK': "USER#" + self.id,
                 'SK': "user"
@@ -170,7 +169,7 @@ class User:
     
     def get_auth_token(self):
         if not self.token:
-            response = dynamodb_table.get_item(
+            response = self.table.get_item(
                 Key={
                     'PK': "USER#" + self.id,
                     'SK': "user"
@@ -220,12 +219,12 @@ class User:
             'team_name': team_name,
             'team_id': team_id,
             'enterprise_id': enterprise_id,
-            'create_time': create_time.strftime(DATETIME_FORMAT)
+            'create_time': create_time.strftime(self.datetime_format)
         }
         for key in list(item):
             if not item[key]:
                 del item[key]
-        dynamodb_table.put_item(Item=item)
+        self.table.put_item(Item=item)
         self._reset()
     
     def __eq__(self, other):
