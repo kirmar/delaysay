@@ -214,10 +214,10 @@ Resources:
       TableName: !Ref DelaySayTableName
   
   # Lambda functions
-  DelaySayFunction:
+  DelaySaySecondResponderFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: code-slack-slash-command/
+      CodeUri: code-slack-slash-command-second-responder/
       Handler: app.lambda_handler_with_catch_all
       Runtime: python3.10
       Layers:
@@ -232,8 +232,6 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref DelaySayTable
         - SSMParameterReadPolicy:
-            ParameterName: !Ref SlackSigningSecretSsmName
-        - SSMParameterReadPolicy:
             ParameterName: !Ref StripeApiKeySsmName
         - SSMParameterReadPolicy:
             ParameterName: !Ref StripeTestingApiKeySsmName
@@ -247,6 +245,26 @@ Resources:
           SLASH_COMMAND: !Ref SlashCommand
           SLASH_COMMAND_LINKS_DOMAIN: !Ref SlashCommandLinksDomain
           SUBSCRIBE_URL: !Ref SubscribeUrl
+          CONTACT_PAGE: !Ref ContactPage
+          SUPPORT_EMAIL: !Ref SupportEmail
+  DelaySayFirstResponderFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: code-slack-slash-command-first-responder/
+      Handler: app.lambda_handler_with_catch_all
+      Runtime: python3.10
+      Layers:
+        - !Ref DelaySayLayerExceptions
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DelaySaySecondResponderFunction
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref SlackSigningSecretSsmName
+      Environment:
+        Variables:
+          SECOND_RESPONDER_FUNCTION: !GetAtt DelaySaySecondResponderFunction.Arn
+          SLACK_SIGNING_SECRET_SSM_NAME: !Sub "/${SlackSigningSecretSsmName}"
+          SLASH_COMMAND: !Ref SlashCommand
           CONTACT_PAGE: !Ref ContactPage
           SUPPORT_EMAIL: !Ref SupportEmail
       Events:
@@ -342,18 +360,24 @@ Outputs:
   DelaySayTable:
     Description: "DelaySay DynamoDB Table ARN"
     Value: !GetAtt DelaySayTable.Arn
-  DelaySayFunction:
-    Description: "DelaySay Lambda Function ARN"
-    Value: !GetAtt DelaySayFunction.Arn
+  DelaySayFirstResponderFunction:
+    Description: "DelaySay First Responder Lambda Function ARN"
+    Value: !GetAtt DelaySayFirstResponderFunction.Arn
+  DelaySaySecondResponderFunction:
+    Description: "DelaySay Second Responder Lambda Function ARN"
+    Value: !GetAtt DelaySaySecondResponderFunction.Arn
   DelaySayUserAuthorizationFunction:
     Description: "DelaySay User Authorization Lambda Function ARN"
     Value: !GetAtt DelaySayUserAuthorizationFunction.Arn
   DelaySayStripeCheckoutWebhookFunction:
     Description: "DelaySay Stripe Checkout Lambda Function ARN"
     Value: !GetAtt DelaySayStripeCheckoutWebhookFunction.Arn
-  DelaySayFunctionIamRole:
-    Description: "Implicit IAM Role created for DelaySay function"
-    Value: !GetAtt DelaySayFunctionRole.Arn
+  DelaySayFirstResponderFunctionIamRole:
+    Description: "Implicit IAM Role created for one DelaySay function"
+    Value: !GetAtt DelaySayFirstResponderFunctionRole.Arn
+  DelaySaySecondResponderFunctionIamRole:
+    Description: "Implicit IAM Role created for other DelaySay function"
+    Value: !GetAtt DelaySaySecondResponderFunctionRole.Arn
   DelaySayUserAuthorizationFunctionIamRole:
     Description: "Implicit IAM Role created for DelaySay user auth function"
     Value: !GetAtt DelaySayUserAuthorizationFunctionRole.Arn

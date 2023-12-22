@@ -231,8 +231,6 @@ TBD: Update the parameter name when it changes
 
 Save this endpoint URL for configuring the Slack app and Stripe account later on.
 
-In your IAM console, create a policy that allows the action "lambda:InvokeFunction" on your slash command Lambda function's ARN. Attach it to the slash command Lambda's IAM role. (TBD: Add this IAM policy to template.yaml instead of having the developer do it manually)
-
 
 ## STEP 2B: Validate the DelaySay API's ACM Certificate
 
@@ -292,7 +290,7 @@ In your KMS console, create a new key:
 - Alias: *[Paste the value of $DELAYSAY_KMS_MASTER_KEY_ALIAS]*
 - Key administrators: **`admin`**
 - Check: **"Allow key administrators to delete this key."**
-- "IAM users and roles that can use the CMK in cryptographic operations": *[Select the roles from DelaySayFunction and DelaySayUserAuthorizationFunction]*
+- "IAM users and roles that can use the CMK in cryptographic operations": *[Select the roles from DelaySaySecondResponderFunction and DelaySayUserAuthorizationFunction]*
 - Finish.
 
 Click the alias and copy the ARN to $DELAYSAY_KMS_MASTER_KEY_ARN.
