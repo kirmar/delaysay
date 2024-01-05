@@ -4,32 +4,33 @@ from os import environ as os_environ
 from datetime import datetime
 
 def setup():
-    from stripe import api_key as stripe_api_key
     ssm = boto3_client('ssm')
 
     stripe_api_key_parameter = ssm.get_parameter(
         Name=os_environ['STRIPE_API_KEY_SSM_NAME'],
         WithDecryption=True
     )
-    stripe_api_key = stripe_api_key_parameter['Parameter']['Value']
+    API_KEY = stripe_api_key_parameter['Parameter']['Value']
 
     stripe_test_api_key_parameter = ssm.get_parameter(
         Name=os_environ['STRIPE_TESTING_API_KEY_SSM_NAME'],
         WithDecryption=True
     )
     TEST_MODE_API_KEY = stripe_test_api_key_parameter['Parameter']['Value']
-    return TEST_MODE_API_KEY
+    return (API_KEY, TEST_MODE_API_KEY)
 
 
 class StripeSubscription:
 
     SETUP_DONE = False
+    API_KEY = None
     TEST_MODE_API_KEY = None
     
     def __init__(self, id):
         assert id and isinstance(id, str)
         if not StripeSubscription.SETUP_DONE:
-            StripeSubscription.TEST_MODE_API_KEY = setup()
+            (StripeSubscription.API_KEY,
+             StripeSubscription.TEST_MODE_API_KEY) = setup()
             StripeSubscription.SETUP_DONE = True
         self.id = id
         self.last_updated = 0
@@ -44,7 +45,8 @@ class StripeSubscription:
         self.last_updated = time()
         self.mode = "live"
         try:
-            subscription = stripe_Subscription.retrieve(self.id)
+            subscription = stripe_Subscription.retrieve(
+                self.id, api_key=StripeSubscription.API_KEY)
         except stripe_error.InvalidRequestError:
             self.mode = "test"
             subscription = stripe_Subscription.retrieve(
