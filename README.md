@@ -55,6 +55,7 @@ In `secrets/load-delaysay-environment-variables-general`, set these environment 
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
     export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
+    export DELAYSAY_ENV_VARS_1_LOADED=yep
 
 In `secrets/load-delaysay-environment-variables-prod` and `secrets/load-delaysay-environment-variables-dev`, set these environment variables, changing them appropriately to match your production and development environments:
 
@@ -73,14 +74,11 @@ In `secrets/load-delaysay-environment-variables-prod` and `secrets/load-delaysay
     export DELAYSAY_SLACK_CLIENT_SECRET=delaysay/slack/client-secret
     export DELAYSAY_KMS_MASTER_KEY_ARN=See_Step_4
     export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
+    export DELAYSAY_ENV_VARS_2_LOADED=yep
 
 Make the files executable:
 
     chmod +x secrets/load-delaysay-environment-variables-general secrets/load-delaysay-environment-variables-prod secrets/load-delaysay-environment-variables-dev
-
-Also make the following file executable:
-
-    chmod +x deploy-delaysay-sam
 
 To deploy to your development environment:
 
