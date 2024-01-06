@@ -3,6 +3,12 @@
 cd $HOME/src/delaysay
 
 source ./secrets/load-delaysay-environment-variables-general
+if [[ ${DELAYSAY_ENV_VARS_1_LOADED-x} != "yep" ]]
+then
+    echo Follow the README to set up your environment variable scripts 1
+    exit 1
+fi
+
 
 if [[ $1 = "prod" ]]
 then
@@ -18,6 +24,12 @@ then
     source ./secrets/load-delaysay-environment-variables-dev
 else
     echo The first option must be "prod" or "dev"
+    exit 1
+fi
+
+if [[ ${DELAYSAY_ENV_VARS_2_LOADED-x} != "yep" ]]
+then
+    echo Follow the README to set up your environment variable scripts 2
     exit 1
 fi
 
