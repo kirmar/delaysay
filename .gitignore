@@ -1,3 +1,4 @@
+secrets/*
 /packaged.yaml
 */build.toml
 slack_app_info.py

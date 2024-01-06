@@ -1,0 +1,107 @@
+#!/bin/bash -e
+
+cd $HOME/src/delaysay
+
+source ./secrets/load-delaysay-environment-variables-general
+
+if [[ $1 = "prod" ]]
+then
+    echo Deploying DelaySay production environment...
+    echo ========== ========== ==========
+    echo
+    source ./secrets/load-delaysay-environment-variables-prod
+elif [[ $1 = "dev" ]]
+then
+    echo Deploying DelaySay development environment...
+    echo ========== ========== ==========
+    echo
+    source ./secrets/load-delaysay-environment-variables-dev
+else
+    echo The first option must be "prod" or "dev"
+    exit 1
+fi
+
+
+bucket_check=$( \
+  aws s3api head-bucket \
+    --region "$DELAYSAY_REGION" \
+    --bucket $DELAYSAY_DEPLOY_BUCKET \
+    2>&1 \
+  ) || exit_status=$?
+
+if [[ $exit_status -ne 0 ]]
+then
+    if [[ $bucket_check == *404* ]]
+    then
+        echo Could not find S3 bucket \"$DELAYSAY_DEPLOY_BUCKET\"
+        read -p "Create it now [Y/n]? " yn
+        case $yn in
+            Y|y|[Yy][Ee][Ss]|"") ;;
+            *) echo "Okay, cancelling deployment"; exit 1;;
+        esac
+        echo Creating the S3 bucket now
+        aws s3 mb \
+          --region "$DELAYSAY_REGION" \
+          s3://$DELAYSAY_DEPLOY_BUCKET
+        echo Successfully created deployment S3 bucket
+    elif [[ $bucket_check == *403* ]]
+    then
+        echo You don\'t have access to the S3 bucket \"$DELAYSAY_DEPLOY_BUCKET\"
+        echo Cancelling deployment
+        exit 1
+    else
+        echo There was an issue finding your S3 bucket \"$DELAYSAY_DEPLOY_BUCKET\"
+        echo Cancelling deployment
+        exit 1
+    fi
+fi
+
+
+# Why (and how) use `sam build --use container` instead of `sam build`?
+# See notes in Google Doc from 2021-02-03.
+sam build --use-container
+# sam build
+
+sam package \
+  --output-template-file packaged.yaml \
+  --s3-bucket "$DELAYSAY_DEPLOY_BUCKET"
+
+sam deploy \
+  --region "$DELAYSAY_REGION" \
+  --stack-name "$DELAYSAY_STACK_NAME" \
+  --template-file packaged.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    "SlashCommand=$DELAYSAY_SLASH_COMMAND" \
+    "SlashCommandLinksDomain=$DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN" \
+    "ContactPage=$DELAYSAY_CONTACT_PAGE" \
+    "SupportEmail=$DELAYSAY_SUPPORT_EMAIL" \
+    "DelaySayTableName=$DELAYSAY_TABLE_NAME" \
+    "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
+    "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
+    "SlackOAuthUrl=$DELAYSAY_SLACK_OAUTH_URL" \
+    "BillingPortalFailUrl=$DELAYSAY_BILLING_PORTAL_FAIL_URL" \
+    "InstallSuccessUrl=$DELAYSAY_INSTALL_SUCCESS_URL" \
+    "InstallCancelUrl=$DELAYSAY_INSTALL_CANCEL_URL" \
+    "InstallFailUrl=$DELAYSAY_INSTALL_FAIL_URL" \
+    "SubscribeUrl=$DELAYSAY_SUBSCRIBE_URL" \
+    "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
+    "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
+    "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
+    "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
+    "SlackSigningSecretSsmName=$DELAYSAY_SLACK_SIGNING_SECRET" \
+    "SlackClientIdSsmName=$DELAYSAY_SLACK_CLIENT_ID" \
+    "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
+    "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
+
+if [[ $1 = "prod" ]]
+then
+    echo
+    echo ========== ========== ==========
+    echo Successfully deployed to DelaySay production environment!
+elif [[ $1 = "dev" ]]
+then
+    echo
+    echo ========== ========== ==========
+    echo Successfully deployed to DelaySay development environment!
+fi

@@ -35,8 +35,14 @@ Note: The directions below explain how to create the Slack app using the code in
 
 ## How to deploy the CloudFormation stack
 
-Set environment variables to match your preferences:
+In your local repo directory, create a subdirectory `secrets/` with three new files:
+- `load-delaysay-environment-variables-general`
+- `load-delaysay-environment-variables-prod`
+- `load-delaysay-environment-variables-dev`
+
+In `secrets/load-delaysay-environment-variables-general`, set these environment variables to match your preferences:
     
+    #!/bin/bash
     export AWS_PROFILE=myAWSprofile   # the .aws/config profile you want to use
     export DELAYSAY_REGION=us-east-1
     export DELAYSAY_DOMAIN_NAME=See_Step_0
@@ -49,9 +55,10 @@ Set environment variables to match your preferences:
     export DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET=delaysay/stripe/webhook-checkout-signing-secret
     export DELAYSAY_STRIPE_API_KEY=delaysay/stripe/webhook-api-key
     export DELAYSAY_STRIPE_TESTING_API_KEY=delaysay/stripe/webhook-testing-api-key
-    
-    # Change these depending on whether you're deploying to the
-    # production or development environment:
+
+In `secrets/load-delaysay-environment-variables-prod` and `secrets/load-delaysay-environment-variables-dev`, set these environment variables, changing them appropriately to match your production and development environments:
+
+    #!/bin/bash
     export DELAYSAY_SLASH_COMMAND=/delay
     export DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN=See_Step_0
     export DELAYSAY_SUBSCRIBE_URL=See_Step_0
@@ -67,42 +74,21 @@ Set environment variables to match your preferences:
     export DELAYSAY_KMS_MASTER_KEY_ARN=See_Step_4
     export DELAYSAY_KMS_MASTER_KEY_ALIAS=delaysay/prod-key
 
-Build and package SAM app:
+Make the files executable:
 
-    sam build --use-container
-    sam package \
-      --output-template-file packaged.yaml \
-      --s3-bucket "$DELAYSAY_DEPLOY_BUCKET"
+    chmod +x secrets/load-delaysay-environment-variables-general secrets/load-delaysay-environment-variables-prod secrets/load-delaysay-environment-variables-dev
 
-Deploy the SAM app:
+Also make the following file executable:
 
-    sam deploy \
-      --region "$DELAYSAY_REGION" \
-      --stack-name "$DELAYSAY_STACK_NAME" \
-      --template-file packaged.yaml \
-      --capabilities CAPABILITY_IAM \
-      --parameter-overrides \
-        "SlashCommand=$DELAYSAY_SLASH_COMMAND" \
-        "SlashCommandLinksDomain=$DELAYSAY_SLASH_COMMAND_LINKS_DOMAIN" \
-        "ContactPage=$DELAYSAY_CONTACT_PAGE" \
-        "SupportEmail=$DELAYSAY_SUPPORT_EMAIL" \
-        "DelaySayTableName=$DELAYSAY_TABLE_NAME" \
-        "DelaySayApiDomain=$DELAYSAY_API_DOMAIN_NAME" \
-        "DelaySayDomain=$DELAYSAY_DOMAIN_NAME" \
-        "SlackOAuthUrl=$DELAYSAY_SLACK_OAUTH_URL" \
-        "BillingPortalFailUrl=$DELAYSAY_BILLING_PORTAL_FAIL_URL" \
-        "InstallSuccessUrl=$DELAYSAY_INSTALL_SUCCESS_URL" \
-        "InstallCancelUrl=$DELAYSAY_INSTALL_CANCEL_URL" \
-        "InstallFailUrl=$DELAYSAY_INSTALL_FAIL_URL" \
-        "SubscribeUrl=$DELAYSAY_SUBSCRIBE_URL" \
-        "StripeCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_CHECKOUT_SIGNING_SECRET" \
-        "StripeTestingCheckoutSigningSecretSsmName=$DELAYSAY_STRIPE_TESTING_CHECKOUT_SIGNING_SECRET" \
-        "StripeApiKeySsmName=$DELAYSAY_STRIPE_API_KEY" \
-        "StripeTestingApiKeySsmName=$DELAYSAY_STRIPE_TESTING_API_KEY" \
-        "SlackSigningSecretSsmName=$DELAYSAY_SLACK_SIGNING_SECRET" \
-        "SlackClientIdSsmName=$DELAYSAY_SLACK_CLIENT_ID" \
-        "SlackClientSecretSsmName=$DELAYSAY_SLACK_CLIENT_SECRET" \
-        "KmsMasterKeyArn=$DELAYSAY_KMS_MASTER_KEY_ARN"
+    chmod +x deploy-delaysay-sam
+
+To deploy to your development environment:
+
+    ./deploy-delaysay-sam dev
+
+After you've tested your development environment, to deploy to your production environment:
+
+    ./deploy-delaysay-sam prod
 
 
 ## STEP 0: Set up your website/domain
@@ -209,12 +195,6 @@ Clone the delaysay GitHub repository
 Deploy the CloudFormation stack as described above, keeping in mind:
 
 - Some of the environment variables' values will change in the indicated step. But the first time you deploy, leave them as they are.
-
-- After exporting the environment variables and before running the `sam` commands, create the S3 bucket for SAM deployments:
-
-      aws s3 mb \
-        --region "$DELAYSAY_REGION" \
-        s3://$DELAYSAY_DEPLOY_BUCKET
 
 - When you run `sam deploy` the first time, it will eventually pause and wait for you. You must complete Step 2B for it to finish.
 
