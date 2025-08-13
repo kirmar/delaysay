@@ -12,13 +12,7 @@ import hmac
 import time
 from Team import Team
 from DelaySayExceptions import (
-    TeamNotInDynamoDBError, NoTeamIdGivenError, SignaturesDoNotMatchError,
-    TimeToleranceExceededError)
-from datetime import datetime
-
-# TODO: Can I safely remove `dynamodb` here?
-dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(os.environ['AUTH_TABLE_NAME'])
+    NoTeamIdGivenError, SignaturesDoNotMatchError, TimeToleranceExceededError)
 
 ssm = boto3.client('ssm')
 
@@ -37,9 +31,6 @@ TEST_ENDPOINT_SECRET = stripe_test_signing_secret_parameter['Parameter']['Value'
 # If the timestamp is this old, reject the payload.
 # (https://stripe.com/docs/webhooks/signatures#replay-attacks)
 TIME_TOLERANCE_IN_SECONDS = 5 * 60
-
-# This is the format used to log dates in the DynamoDB table.
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def find_timestamp_and_signature(stripe_signature):
@@ -117,7 +108,6 @@ def lambda_handler(event, context):
     verify_stripe_signature(stripe_signature, payload=payload, is_live=is_live)
     object = payload_json['data']['object']
     team_id = object['client_reference_id']
-    plan_name = object['display_items'][0]['plan']['nickname']
     if team_id == "no_team_id_provided":
         raise NoTeamIdGivenError("No team ID provided")
     

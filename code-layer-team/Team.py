@@ -33,7 +33,7 @@ class Team:
         for id in self.subscription_ids:
             try:
                 subscription = StripeSubscription(id)
-            except Exception as err:
+            except Exception:
                 print(
                     "Continuing to the next subscription, because there was a problem"
                     f" retrieving Stripe subscription {id}:\r\r"

@@ -142,7 +142,7 @@ def lambda_handler_with_catch_all(event, context):
         return build_response(
             "Hi, there! There's been an issue, error 403-B."
             + support_message)
-    except Exception as err:
+    except Exception:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         print(format_exc().replace('\n', '\r'))

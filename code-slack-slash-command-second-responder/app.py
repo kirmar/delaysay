@@ -3,7 +3,6 @@ Code included from:
 https://github.com/awslabs/serverless-application-model/blob/master/examples/apps/slack-echo-command-python/lambda_function.py
 '''
 
-from json import loads as json_loads
 from traceback import format_exc
 from requests import post as requests_post
 
@@ -50,9 +49,6 @@ SUBSCRIPTION_WARNING_PERIOD = timedelta(days=1)
 # Let the team keep using DelaySay, but warn them to pay soon.
 # Stop access to DelaySay this long after their payment/trial expires.
 PAYMENT_GRACE_PERIOD = timedelta(days=2)
-
-# This is the format used to log dates in the DynamoDB table.
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 # Consider 2021 Slack API bug for deleting scheduled messages
@@ -203,7 +199,7 @@ def respond_to_billing_request(params):
     team = Team(team_id)
     
     try:
-        token = user.get_auth_token()
+        user.get_auth_token()
     except UserAuthorizeError:
         post_and_print_info_and_confirm_success(
             response_url,
@@ -263,8 +259,7 @@ def respond_to_billing_request(params):
     post_and_print_info_and_confirm_success(response_url, res)
 
 
-def build_help_text(params):
-    user_id = params['user_id'][0]
+def build_help_text():
     examples = [
         "2 min say It's been :two: minutes.",
         "1 hour say Hi, all! :wave:",
@@ -392,11 +387,11 @@ def parse_and_schedule(params):
         parser = SlashCommandParser(
             command_text,
             datetime.fromtimestamp(request_unix_timestamp, tz=user_tz))
-    except CommandParseError as err:
+    except CommandParseError:
         post_and_print_info_and_confirm_success(
             response_url,
             "*Sorry, I don't understand. Please try again.*\n"
-            + build_help_text(params))
+            + build_help_text())
         return
     except TimeParseError as err:
         post_and_print_info_and_confirm_success(
@@ -496,7 +491,7 @@ def lambda_handler_with_catch_all(event, context):
             "Sorry, you don't have a valid subscription."
             + support_message)
         post_and_print_info_and_confirm_success(response_url, res)
-    except Exception as err:
+    except Exception:
         # Maybe remove this, since it could print sensitive information,
         # like the message parsed by SlashCommandParser.
         print(format_exc().replace('\n', '\r'))
