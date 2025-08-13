@@ -52,9 +52,10 @@ class StripeSubscription:
             subscription = stripe_Subscription.retrieve(
                 self.id, api_key=StripeSubscription.TEST_MODE_API_KEY)
         self.payment_status = subscription['status']
-        unix_timestamp = subscription['current_period_end']
+        subscription_item = subscription['items']['data'][0]
+        unix_timestamp = subscription_item['current_period_end']
         self.next_expiration = datetime.fromtimestamp(unix_timestamp, timezone.utc)
-        self.plan_name = subscription['plan']['nickname']
+        self.plan_name = subscription_item['plan']['nickname']
         self.customer_id = subscription['customer']
     
     def is_current(self):
