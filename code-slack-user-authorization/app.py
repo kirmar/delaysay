@@ -10,7 +10,7 @@ import requests
 import os
 from User import User
 from Team import Team
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 ssm = boto3.client('ssm')
 
@@ -97,7 +97,7 @@ def lambda_handler(event, context):
         enterprise_id = enterprise['id']
     else:
         enterprise_id = None
-    create_time = datetime.utcnow()
+    create_time = datetime.now(timezone.utc)
     trial_expiration = create_time + FREE_TRIAL_PERIOD
     
     user = User(user_id)

@@ -1,7 +1,7 @@
 from boto3 import client as boto3_client
 from time import time
 from os import environ as os_environ
-from datetime import datetime
+from datetime import datetime, timezone
 
 def setup():
     ssm = boto3_client('ssm')
@@ -53,13 +53,13 @@ class StripeSubscription:
                 self.id, api_key=StripeSubscription.TEST_MODE_API_KEY)
         self.payment_status = subscription['status']
         unix_timestamp = subscription['current_period_end']
-        self.next_expiration = datetime.utcfromtimestamp(unix_timestamp)
+        self.next_expiration = datetime.fromtimestamp(unix_timestamp, timezone.utc)
         self.plan_name = subscription['plan']['nickname']
         self.customer_id = subscription['customer']
     
     def is_current(self):
         self._refresh()
-        has_not_expired = (datetime.utcnow() < self.next_expiration)
+        has_not_expired = (datetime.now(timezone.utc) < self.next_expiration)
         is_paid = (self.payment_status == "active")
         return has_not_expired and is_paid
     

@@ -2,7 +2,7 @@ from time import time
 from traceback import format_exc
 from StripeSubscription import StripeSubscription
 from DelaySayExceptions import AllStripeSubscriptionsInvalid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class Team:
     
@@ -133,14 +133,14 @@ class Team:
         self._refresh(alert_if_not_in_dynamodb=True)
         if self.never_expires():
             return timedelta(weeks=52*100)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return self.payment_expiration - now
     
     def get_time_payment_has_been_overdue(self):
         self._refresh(alert_if_not_in_dynamodb=True)
         if self.never_expires():
             return timedelta(0)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return now - self.payment_expiration
     
     def add_to_dynamodb(self, team_name, enterprise_id, create_time,

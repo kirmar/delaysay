@@ -12,7 +12,7 @@ from slack import (
     errors as slack_errors)
 
 from os import environ as os_environ
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import sample as random_sample
 
 from User import User
@@ -160,8 +160,8 @@ def delete_scheduled_message(params):
     slack_client = slack_WebClient(token=token)
     message_info = scheduled_messages[i]
 
-    if (datetime.utcfromtimestamp(message_info['post_at'])
-        <= datetime.utcnow() + MIN_TIME_FOR_DELETION):
+    if (datetime.fromtimestamp(message_info['post_at'], timezone.utc)
+        <= datetime.now(timezone.utc) + MIN_TIME_FOR_DELETION):
         res = (
             f"I can't cancel message {message_number};"
             f" it's scheduled to send within the next {MIN_TIME_FOR_DELETION_STRING}.")

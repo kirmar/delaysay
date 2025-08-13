@@ -1,13 +1,13 @@
 import requests
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 slash = os.environ['SLASH_COMMAND']
 
 
 def convert_to_slack_datetime(timestamp):
-    fallback_text = datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S UTC")
+    fallback_text = datetime.fromtimestamp(timestamp, timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     slack_datetime = (
         "<!date^" + str(timestamp)
         + "^{time_secs} on {date_long}|"

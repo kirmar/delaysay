@@ -2,7 +2,7 @@ import os
 from uuid import uuid4
 from User import User
 from BillingToken import BillingToken
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 slash = os.environ['SLASH_COMMAND']
 api_domain = os.environ['SLASH_COMMAND_LINKS_DOMAIN']
@@ -124,7 +124,7 @@ def write_message_and_add_or_remove_billing_role(option, user, user_id,
 def generate_billing_url(user_id, team_id, team_domain):
     billing_token = BillingToken(token=uuid4().hex)
     billing_token.add_to_dynamodb(
-        create_time=datetime.utcnow(),
+        create_time=datetime.now(timezone.utc),
         expiration_period=BILLING_TOKEN_PERIOD,
         team_id=team_id,
         team_domain=team_domain,

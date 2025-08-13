@@ -1,5 +1,5 @@
 from DelaySayExceptions import BillingTokenInvalidError
-from datetime import datetime
+from datetime import datetime, timezone
 
 class BillingToken:
     
@@ -49,7 +49,7 @@ class BillingToken:
     def has_expired(self):
         date = self._get_table_entry()['token_expiration']
         token_expiration = datetime.strptime(date, self.datetime_format)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return (token_expiration < now)
     
     def get_team_id(self):
