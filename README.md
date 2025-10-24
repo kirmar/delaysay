@@ -4,7 +4,7 @@ A Slack app that schedules messages
 
 To install this Slack app for use in your Slack workspace, please visit https://DelaySay.com/
 
-To create your own Slack app using the code in this repo, please follow the below instructions. (Disclaimer: I do my best to keep these instructions updated, but please keep in mind that they may have errors or gaps.)
+To create your own Slack app using the code in this repo, please follow the below instructions. (Disclaimer: I do my best to keep these instructions updated, but please keep in mind that they may have errors or gaps. They are meant only as an educational resource to help others build their own Slack apps.)
 
 
 ## Prerequisites
